@@ -3,11 +3,14 @@ package io.lazysheeep.lazydirector;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.actor.ActorManager;
+import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.*;
 import org.bukkit.event.player.*;
+
+import java.util.List;
 
 public class Director implements Listener
 {
@@ -48,7 +51,11 @@ public class Director implements Listener
         actorManager.update();
         hotspotManager.update();
 
-        cameraman.setFocus(hotspotManager.getAllHotspotsSorted().getFirst());
+        List<Hotspot> sortedHotspots = hotspotManager.getAllHotspotsSorted();
+        if(!sortedHotspots.isEmpty())
+        {
+            cameraman.setFocus(sortedHotspots.getFirst());
+        }
         cameraman.update();
     }
 

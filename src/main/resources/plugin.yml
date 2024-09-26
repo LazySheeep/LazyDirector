@@ -10,6 +10,6 @@ commands:
   lazydirector:
     description: "command of plugin LazyDirector"
     usage: |
-      /lazydirector
+      Usage: /lazydirector
     aliases: [lazydirector, ld]
     permission: op

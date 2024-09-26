@@ -33,6 +33,7 @@ public class Cameraman
     public void setFocus(Hotspot hotspot)
     {
         focus = hotspot;
+        location = focus.getLocation();
     }
 
     public void update()
@@ -59,7 +60,7 @@ public class Cameraman
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double pitch = Math.asin(dy / distance);
         double yaw = Math.atan2(dz, dx);
-        origin.setYaw((float) Math.toDegrees(yaw));
-        origin.setPitch((float) Math.toDegrees(pitch));
+        origin.setYaw((float) Math.toDegrees(yaw) - 90.0f);
+        origin.setPitch((float) -Math.toDegrees(pitch));
     }
 }

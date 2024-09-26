@@ -7,6 +7,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +37,7 @@ public class ActorManager
         });
     }
 
-    private Actor createActor(Player player)
+    private Actor createActor(@NotNull Player player)
     {
         Actor actor = new Actor(player);
         player.setMetadata("Actor", new FixedMetadataValue(LazyDirector.getPlugin(), actor));
@@ -78,6 +79,11 @@ public class ActorManager
             {
                 createActor(player);
             }
+        }
+        // Update actors
+        for(Actor actor : actors)
+        {
+            actor.update();
         }
     }
 

@@ -1,6 +1,7 @@
 package io.lazysheeep.lazydirector.hotspot;
 
 import io.lazysheeep.lazydirector.actor.Actor;
+import org.apache.commons.lang3.NotImplementedException;
 import org.bukkit.Location;
 
 import java.util.Arrays;
@@ -40,6 +41,6 @@ public class ActorGatheringHotspot extends Hotspot
     @Override
     public Location getLocation()
     {
-        return null;
+        throw new NotImplementedException("Not implemented");
     }
 }
