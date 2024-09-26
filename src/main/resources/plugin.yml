@@ -1,0 +1,15 @@
+name: LazyDirector
+version: '1.0-SNAPSHOT'
+main: io.lazysheeep.lazydirector.LazyDirector
+api-version: '1.21'
+prefix: LazyDirector
+author: LazySheeep
+description: A minecraft plugin
+
+commands:
+  lazydirector:
+    description: "command of plugin LazyDirector"
+    usage: |
+      /lazydirector
+    aliases: [lazydirector, ld]
+    permission: op
