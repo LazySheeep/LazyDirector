@@ -36,7 +36,7 @@ public class ActorHotspot extends Hotspot
     @Override
     public Location getLocation()
     {
-        return actor.hostPlayer.getLocation();
+        return actor.hostPlayer.getEyeLocation();
     }
 
 }

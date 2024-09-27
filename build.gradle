@@ -47,3 +47,10 @@ processResources {
         expand props
     }
 }
+
+task copyJar(type: Copy) {
+    from jar
+    into file("$rootDir/test/paper server 1.21/plugins")
+}
+
+jar.finalizedBy(copyJar)

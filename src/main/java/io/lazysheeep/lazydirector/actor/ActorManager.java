@@ -99,6 +99,6 @@ public class ActorManager
 
     private boolean shouldBeActor(Player player)
     {
-        return stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode()) && !player.isOp();
+        return stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode());
     }
 }
