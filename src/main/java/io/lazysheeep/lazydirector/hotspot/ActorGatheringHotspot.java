@@ -33,10 +33,11 @@ public class ActorGatheringHotspot extends Hotspot
     }
 
     @Override
-    public void update()
+    protected void additionalUpdate()
     {
-
+        // Do nothing
     }
+
 
     @Override
     public Location getLocation()

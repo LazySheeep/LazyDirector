@@ -1,14 +1,13 @@
 package io.lazysheeep.lazydirector;
 
+import io.lazysheeep.lazydirector.director.Director;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,9 +46,25 @@ public final class LazyDirector extends JavaPlugin
         }
         else
         {
-            getLogger().log(Level.SEVERE, "Can't get command! There must be something wrong!");
+            getLogger().log(Level.SEVERE, "Cannot get command! Why is that happening?");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
         }
 
+        // load heat types
+        FileConfiguration fileConfig = loadCustomConfig("heatTypes.yml");
+        if(fileConfig != null)
+        {
+            io.lazysheeep.lazydirector.heat.HeatType.RegisterHeatTypesFromConfig(fileConfig);
+        }
+        else
+        {
+            getLogger().log(Level.SEVERE, "heatTypes.yml not found!");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
+        
+        // create director
         director = new Director();
     }
 
@@ -57,8 +72,6 @@ public final class LazyDirector extends JavaPlugin
     public void onDisable()
     {
         plugin = null;
-
-        director.Stop();
         director = null;
     }
 
@@ -111,7 +124,7 @@ public final class LazyDirector extends JavaPlugin
                     Player player = Bukkit.getPlayerExact(args[1]);
                     if(player != null)
                     {
-                        director.getCameraman().attachCamera(player);
+                        director.getCameraman("CameramanA").attachCamera(player);
                         return true;
                     }
                     getLogger().log(Level.WARNING, "Player " + args[1] + " not found!");

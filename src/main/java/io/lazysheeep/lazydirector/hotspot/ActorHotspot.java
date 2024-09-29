@@ -1,7 +1,5 @@
 package io.lazysheeep.lazydirector.hotspot;
 
-import io.lazysheeep.lazydirector.Heat;
-import io.lazysheeep.lazydirector.HeatType;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
 
@@ -15,22 +13,15 @@ public class ActorHotspot extends Hotspot
     }
 
     @Override
-    public void destroy()
+    protected void destroy()
     {
         actor = null;
     }
 
     @Override
-    public void update()
+    protected void additionalUpdate()
     {
-        for(HeatType type : HeatType.values())
-        {
-            Heat heat = heats[type.ordinal()];
-            if(heat != null)
-            {
-                heat.coolDown();
-            }
-        }
+        // Do nothing
     }
 
     @Override

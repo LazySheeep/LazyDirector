@@ -35,7 +35,7 @@ public class HotspotManager
     {
         List<Hotspot> sortedHotspots = new ArrayList<>(hotspots);
         Collections.sort(sortedHotspots);
-        return sortedHotspots;
+        return sortedHotspots.reversed();
     }
 
     public void update()

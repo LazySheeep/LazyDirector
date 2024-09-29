@@ -1,6 +1,5 @@
 package io.lazysheeep.lazydirector.actor;
 
-import io.lazysheeep.lazydirector.HeatType;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.ActorGatheringHotspot;
 import io.lazysheeep.lazydirector.hotspot.ActorHotspot;
@@ -24,7 +23,7 @@ public class Actor
     void destroy()
     {
         hostPlayer = null;
-        actorHotspot.destroy();
+        LazyDirector.getDirector().getHotspotManager().destroyHotspot(actorHotspot);
         actorHotspot = null;
         if(actorGatheringHotspot != null)
         {

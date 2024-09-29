@@ -1,0 +1,30 @@
+heatTypes:
+  - name: "static"
+    maxHeat: 99999.0
+    heatEachIncrement: 1.0
+    coolingRate: 0.0
+
+  - name: "player_movement"
+    maxHeat: 10.0
+    heatEachIncrement: 1.0
+    coolingRate: 1.0
+
+  - name: "player_hurt_player"
+    maxHeat: 200.0
+    heatEachIncrement: 10.0
+    coolingRate: 2.0
+
+  - name: "player_kill_player"
+    maxHeat: 500.0
+    heatEachIncrement: 100.0
+    coolingRate: 5.0
+
+  - name: "player_hurt_entity"
+    maxHeat: 100.0
+    heatEachIncrement: 5.0
+    coolingRate: 2.0
+
+  - name: "player_gathering"
+    maxHeat: 100.0
+    heatEachIncrement: 5.0
+    coolingRate: 1.0

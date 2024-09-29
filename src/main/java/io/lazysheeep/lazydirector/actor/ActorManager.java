@@ -47,11 +47,15 @@ public class ActorManager
 
     public Actor getActor(Player player)
     {
+        if(!player.isOnline())
+            return null;
+
         for(MetadataValue metaData : player.getMetadata("Actor"))
         {
             if(metaData.getOwningPlugin() == LazyDirector.getPlugin() && metaData.value() instanceof Actor actor)
                 return actor;
         }
+        
         return null;
     }
 
@@ -99,6 +103,6 @@ public class ActorManager
 
     private boolean shouldBeActor(Player player)
     {
-        return stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode());
+        return player.isOnline() && stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode());
     }
 }
