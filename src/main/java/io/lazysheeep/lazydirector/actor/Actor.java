@@ -17,19 +17,19 @@ public class Actor
     Actor(@NotNull Player player)
     {
         hostPlayer = player;
-        actorHotspot = LazyDirector.getDirector().getHotspotManager().createActorHotspot(this);
+        actorHotspot = LazyDirector.GetPlugin().getHotspotManager().createActorHotspot(this);
     }
 
     void destroy()
     {
-        hostPlayer = null;
-        LazyDirector.getDirector().getHotspotManager().destroyHotspot(actorHotspot);
+        LazyDirector.GetPlugin().getHotspotManager().destroyHotspot(actorHotspot);
         actorHotspot = null;
         if(actorGatheringHotspot != null)
         {
             actorGatheringHotspot.remove(this);
             actorGatheringHotspot = null;
         }
+        hostPlayer = null;
     }
 
     private Location lastLocation;
@@ -37,5 +37,11 @@ public class Actor
     public void update()
     {
         // do nothing
+    }
+
+    @Override
+    public String toString()
+    {
+        return hostPlayer.getName();
     }
 }

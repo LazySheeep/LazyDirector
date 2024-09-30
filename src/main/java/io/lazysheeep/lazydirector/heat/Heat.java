@@ -1,6 +1,7 @@
 package io.lazysheeep.lazydirector.heat;
 
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.util.MathUtils;
 
 public class Heat
 {
@@ -26,19 +27,13 @@ public class Heat
     public void increase(float multiplier)
     {
         value += type.getHeatEachIncrement() * multiplier;
-        if(value > type.getMaxHeat())
-        {
-            value = type.getMaxHeat();
-        }
+        value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
     }
 
     public void coolDown()
     {
-        value -= type.getCoolingRate() / LazyDirector.getPlugin().getServer().getServerTickManager().getTickRate();
-        if(value < 0.0f)
-        {
-            value = 0.0f;
-        }
+        value -= type.getCoolingRate() / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
+        value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
     }
 
     @Override

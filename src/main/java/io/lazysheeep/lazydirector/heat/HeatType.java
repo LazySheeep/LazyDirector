@@ -1,7 +1,7 @@
 package io.lazysheeep.lazydirector.heat;
 
 import io.lazysheeep.lazydirector.LazyDirector;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -15,14 +15,14 @@ public class HeatType
         HeatType heatType = new HeatType(name, maxHeat, heatEachIncrement, coolingRate);
         if (HeatTypes.contains(heatType))
         {
-            LazyDirector.getPlugin().getLogger().log(Level.WARNING, "Duplicate heatType: " + name);
+            LazyDirector.GetPlugin().getLogger().log(Level.WARNING, "Duplicate heatType: " + name);
         }
         HeatTypes.add(heatType);
     }
 
-    public static void RegisterHeatTypesFromConfig(FileConfiguration fileConfig)
+    public static void RegisterHeatTypesFromConfig(ConfigurationSection configSection)
     {
-        List<Map<?, ?>> heatTypes = fileConfig.getMapList("heatTypes");
+        List<Map<?, ?>> heatTypes = configSection.getMapList("basic");
         for (Map<?, ?> heatTypeMap : heatTypes)
         {
             String name = (String) heatTypeMap.get("name");

@@ -33,6 +33,12 @@ public class ActorGatheringHotspot extends Hotspot
     }
 
     @Override
+    public boolean isValid()
+    {
+        return !actors.isEmpty();
+    }
+
+    @Override
     protected void additionalUpdate()
     {
         // Do nothing
@@ -43,5 +49,11 @@ public class ActorGatheringHotspot extends Hotspot
     public Location getLocation()
     {
         throw new NotImplementedException("Not implemented");
+    }
+
+    @Override
+    public String toString()
+    {
+        return "";
     }
 }

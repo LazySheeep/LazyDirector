@@ -7,6 +7,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class BirdsEyeShot extends CameraShotType
 {
+    public BirdsEyeShot() {}
+
     @Override
     public void updateCameraLocation(@NotNull Entity camera, @NotNull Location focusLocation)
     {

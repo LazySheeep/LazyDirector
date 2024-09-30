@@ -17,9 +17,14 @@ public abstract class Hotspot implements Comparable<Hotspot>
 
     protected abstract void destroy();
 
+    public abstract boolean isValid();
+
     protected abstract void additionalUpdate();
 
     public abstract Location getLocation();
+
+    @Override
+    public abstract String toString();
 
     final void update()
     {
@@ -56,7 +61,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
         HeatType type = HeatType.GetHeatType(heatTypeName);
         if(type == null)
         {
-            LazyDirector.getPlugin().getLogger().warning("Unknown heat type: " + heatTypeName);
+            LazyDirector.GetPlugin().getLogger().warning("Unknown heat type: " + heatTypeName);
             return;
         }
         // Increase the heat of the specified type

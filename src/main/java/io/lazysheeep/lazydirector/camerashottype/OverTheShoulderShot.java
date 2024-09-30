@@ -7,6 +7,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class OverTheShoulderShot extends CameraShotType
 {
+    public OverTheShoulderShot() {}
+
     @Override
     public void updateCameraLocation(@NotNull Entity camera, @NotNull Location focusLocation)
     {

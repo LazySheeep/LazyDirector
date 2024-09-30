@@ -1,0 +1,89 @@
+
+heatTypes:
+  basic:
+    - name: "static"
+      maxHeat: 99999.0
+      heatEachIncrement: 1.0
+      coolingRate: 0.0
+
+    - name: "player_movement"
+      maxHeat: 10.0
+      heatEachIncrement: 1.0
+      coolingRate: 1.0
+
+    - name: "player_hurt_player"
+      maxHeat: 200.0
+      heatEachIncrement: 10.0
+      coolingRate: 2.0
+
+    - name: "player_kill_player"
+      maxHeat: 500.0
+      heatEachIncrement: 100.0
+      coolingRate: 5.0
+
+    - name: "player_hurt_entity"
+      maxHeat: 100.0
+      heatEachIncrement: 5.0
+      coolingRate: 2.0
+
+    - name: "player_gathering"
+      maxHeat: 100.0
+      heatEachIncrement: 5.0
+      coolingRate: 1.0
+
+    - name: "hunger"
+      maxHeat: 99999.0
+      heatEachIncrement: -99999.0
+      coolingRate: -0.05
+
+
+hotspotManager:
+  staticHotspots:
+    - world: "world"
+      x: 0.0
+      y: 100.0
+      z: 0.0
+      heat: 0.1
+
+
+actorManager:
+  stageWorlds:
+    - "world"
+
+  actorGameModes:
+    adventure: true
+    survival: true
+    creative: false
+
+
+director:
+  cameramen:
+    - name: "Misc"
+      minFocusSwitchTime: 5.0
+      maxFocusSwitchTime: 10.0
+      candidateFocuses:
+        maxCount: 999
+        hottest: 0.0
+        hottestWeight: 0.5
+        coldest: 1.0
+        coldestWeight: 0.5
+      shotTypes:
+        - type: "birds_eye_shot"
+          weight: 0.5
+        - type: "over_the_shoulder_shot"
+          weight: 0.5
+
+    - name: "Hottest"
+      minFocusSwitchTime: 5.0
+      maxFocusSwitchTime: 60.0
+      candidateFocuses:
+        maxCount: 1
+        hottest: 0.0
+        hottestWeight: 0.5
+        coldest: 1.0
+        coldestWeight: 0.5
+      shotTypes:
+        - type: "birds_eye_shot"
+          weight: 0.5
+        - type: "over_the_shoulder_shot"
+          weight: 0.5

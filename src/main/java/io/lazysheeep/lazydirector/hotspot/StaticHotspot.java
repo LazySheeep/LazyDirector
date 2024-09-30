@@ -1,45 +1,44 @@
 package io.lazysheeep.lazydirector.hotspot;
 
-import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
 
-public class ActorHotspot extends Hotspot
+public class StaticHotspot extends Hotspot
 {
-    private Actor actor;
+    private Location location;
 
-    ActorHotspot(Actor actor)
+    StaticHotspot(Location location, float heat)
     {
-        this.actor = actor;
+        this.location = location;
+        increase("static", heat);
     }
 
     @Override
     protected void destroy()
     {
-        actor = null;
+        location = null;
     }
 
     @Override
     public boolean isValid()
     {
-        return actor != null;
+        return location != null;
     }
 
     @Override
     protected void additionalUpdate()
     {
-        // Do nothing
+        // do nothing
     }
 
     @Override
     public Location getLocation()
     {
-        return actor.hostPlayer.getEyeLocation();
+        return location.clone();
     }
 
     @Override
     public String toString()
     {
-        return "ActorHotspot: actor: " + actor + ", heat: " + getTotalHeat();
+        return "StaticHotspot: " + location + ", heat: " + getTotalHeat();
     }
-
 }

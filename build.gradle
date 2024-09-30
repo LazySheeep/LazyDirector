@@ -1,9 +1,20 @@
 plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'java'
 }
 
 group = 'io.lazysheeep'
 version = '1.0-SNAPSHOT'
+
+def targetJavaVersion = 21
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
 
 repositories {
     mavenCentral()
@@ -15,21 +26,26 @@ repositories {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
+    maven { url = "https://repo.aikar.co/content/groups/aikar/" }
+}
+
+compileJava {
+    options.compilerArgs += ["-parameters"]
+    options.fork = true
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-20240805.181000-127")
+    compileOnly "io.papermc.paper:paper-api:1.21-R0.1-20240805.181000-127"
+    implementation "org.spongepowered:configurate-hocon:4.1.2"
+    implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
 }
 
-def targetJavaVersion = 21
-java {
-    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
+shadowJar {
+    relocate 'co.aikar.commands', 'io.lazysheeep.lazydirector.acf'
+    relocate 'co.aikar.locales', 'io.lazysheeep.lazydirector.locales'
 }
+
+build.dependsOn shadowJar
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
@@ -54,7 +70,7 @@ task copyJar(type: Copy) {
 }
 
 task copyConfig(type: Copy) {
-    from file("$rootDir/src/main/resources/heatTypes.yml")
+    from file("$rootDir/src/main/resources/config.yml")
     into file("$rootDir/test/paper server 1.21/plugins/LazyDirector")
 }
 
