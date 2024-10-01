@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.jetbrains.annotations.NotNull;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -21,9 +23,16 @@ public class ActorManager
     private final List<World> stageWorlds = new ArrayList<>();
     private final List<GameMode> actorGameModes = new ArrayList<>();
 
-    public ActorManager(ConfigurationSection configSection)
+    public ActorManager() {}
+
+    public ActorManager loadConfig(ConfigurationNode configNode) throws ConfigurateException
     {
-        configSection.getStringList("stageWorlds").forEach(worldName -> {
+        stageWorlds.clear();
+        actorGameModes.clear();
+
+        for (ConfigurationNode stageWorldNode : configNode.node("stageWorlds").childrenList())
+        {
+            String worldName = stageWorldNode.getString("no_value");
             World world = LazyDirector.GetPlugin().getServer().getWorld(worldName);
             if (world != null)
             {
@@ -31,24 +40,24 @@ public class ActorManager
             }
             else
             {
-                LazyDirector.GetPlugin().getLogger().warning("World not found: " + worldName);
-                LazyDirector.GetPlugin()
-                            .getLogger()
-                            .warning("Existing worlds: " + LazyDirector.GetPlugin().getServer().getWorlds());
+                throw new ConfigurateException(stageWorldNode, "World not found: " + worldName);
             }
-        });
-        if (configSection.getBoolean("actorGameModes.adventure", false))
-        {
-            actorGameModes.add(GameMode.ADVENTURE);
         }
-        if (configSection.getBoolean("actorGameModes.survival", false))
+        if(stageWorlds.isEmpty())
         {
-            actorGameModes.add(GameMode.SURVIVAL);
+            throw new ConfigurateException(configNode.node("stageWorlds"), "No stage worlds found");
         }
-        if (configSection.getBoolean("actorGameModes.creative", false))
+        for (ConfigurationNode actorGameModeNode : configNode.node("actorGameModes").childrenList())
         {
-            actorGameModes.add(GameMode.CREATIVE);
+            String gameModeName = actorGameModeNode.getString("no_value");
+            GameMode gameMode = GameMode.valueOf(gameModeName.toUpperCase());
+            actorGameModes.add(gameMode);
         }
+        if(actorGameModes.isEmpty())
+        {
+            throw new ConfigurateException(configNode.node("actorGameModes"), "No actor game modes found");
+        }
+        return this;
     }
 
     private Actor createActor(@NotNull Player player)

@@ -32,7 +32,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
         {
             heat.coolDown();
         }
-        heats.removeIf(heat -> heat.getValue() <= 0);
+        // heats.removeIf(heat -> heat.getValue() <= 0);
 
         additionalUpdate();
     }

@@ -1,23 +1,26 @@
 package io.lazysheeep.lazydirector.director;
 
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class Director
 {
     private final List<Cameraman> cameramen = new ArrayList<>();
 
-    public Director(@NotNull ConfigurationSection configSection)
+    public Director() {}
+
+    public Director loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
-        for(Map<?, ?> config : configSection.getMapList("cameramen"))
+        for(ConfigurationNode cameramanNode : configNode.node("cameramen").childrenList())
         {
-            cameramen.add(new Cameraman(config));
+            cameramen.add(new Cameraman().loadConfig(cameramanNode));
         }
+        return this;
     }
 
     public void destroy()

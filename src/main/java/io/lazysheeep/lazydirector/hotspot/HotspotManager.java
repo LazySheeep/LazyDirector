@@ -3,11 +3,11 @@ package io.lazysheeep.lazydirector.hotspot;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -16,21 +16,25 @@ public class HotspotManager implements Listener
 {
     private final List<Hotspot> hotspots = new LinkedList<>();
 
-    public HotspotManager(ConfigurationSection configSection)
+    public HotspotManager() {}
+
+    public HotspotManager loadConfig(ConfigurationNode configNode)
     {
-        for(Map<?, ?> config : configSection.getMapList("staticHotspots"))
+        for(ConfigurationNode staticHotspotNode : configNode.node("staticHotspots").childrenList())
         {
-            String worldName = (String)config.get("world");
-            float x = ((Number)config.get("x")).floatValue();
-            float y = ((Number)config.get("y")).floatValue();
-            float z = ((Number)config.get("z")).floatValue();
+            ConfigurationNode locationNode = staticHotspotNode.node("location");
+            String worldName = locationNode.node("world").getString();
+            float x = locationNode.node("x").getFloat();
+            float y = locationNode.node("y").getFloat();
+            float z = locationNode.node("z").getFloat();
             Location location = new Location(LazyDirector.GetPlugin().getServer().getWorld(worldName), x, y, z);
-            int heat = ((Number)config.get("heat")).intValue();
+            float heat = staticHotspotNode.node("heat").getFloat();
             createStaticHotspot(location, heat);
         }
+        return this;
     }
 
-    public StaticHotspot createStaticHotspot(Location location, int heat)
+    public StaticHotspot createStaticHotspot(Location location, float heat)
     {
         StaticHotspot staticHotspot = new StaticHotspot(location, heat);
         hotspots.add(staticHotspot);

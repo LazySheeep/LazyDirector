@@ -1,5 +1,5 @@
 name: LazyDirector
-version: '1.0-SNAPSHOT'
+version: '${version}'
 main: io.lazysheeep.lazydirector.LazyDirector
 api-version: '1.21'
 prefix: LazyDirector

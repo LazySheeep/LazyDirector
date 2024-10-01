@@ -1,7 +1,8 @@
 package io.lazysheeep.lazydirector.heat;
 
 import io.lazysheeep.lazydirector.LazyDirector;
-import org.bukkit.configuration.ConfigurationSection;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -10,7 +11,7 @@ public class HeatType
 {
     private static final List<HeatType> HeatTypes = new ArrayList<>();
 
-    public static void RegisterHeatType(String name, float maxHeat, float heatEachIncrement, float coolingRate)
+    private static void RegisterHeatType(String name, float maxHeat, float heatEachIncrement, float coolingRate)
     {
         HeatType heatType = new HeatType(name, maxHeat, heatEachIncrement, coolingRate);
         if (HeatTypes.contains(heatType))
@@ -20,15 +21,18 @@ public class HeatType
         HeatTypes.add(heatType);
     }
 
-    public static void RegisterHeatTypesFromConfig(ConfigurationSection configSection)
+    public static void LoadConfig(ConfigurationNode configNode) throws ConfigurateException
     {
-        List<Map<?, ?>> heatTypes = configSection.getMapList("basic");
-        for (Map<?, ?> heatTypeMap : heatTypes)
+        for (ConfigurationNode heatTypeNode : configNode.node("basic").childrenList())
         {
-            String name = (String) heatTypeMap.get("name");
-            float maxHeat = ((Number) heatTypeMap.get("maxHeat")).floatValue();
-            float heatEachIncrement = ((Number) heatTypeMap.get("heatEachIncrement")).floatValue();
-            float coolingRate = ((Number) heatTypeMap.get("coolingRate")).floatValue();
+            String name = heatTypeNode.node("name").getString();
+            if(name == null)
+            {
+                throw new ConfigurateException(heatTypeNode, "");
+            }
+            float maxHeat = heatTypeNode.node("maxHeat").getFloat(0.0f);
+            float heatEachIncrement = heatTypeNode.node("heatEachIncrement").getFloat(0.0f);
+            float coolingRate = heatTypeNode.node("coolingRate").getFloat(0.0f);
             RegisterHeatType(name, maxHeat, heatEachIncrement, coolingRate);
         }
     }

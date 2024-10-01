@@ -11,6 +11,8 @@ import org.bukkit.Location;
 import org.bukkit.entity.*;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -21,59 +23,65 @@ import java.util.logging.Level;
 
 public class Cameraman
 {
-    private final String name;
+    private String name;
 
     public @NotNull String getName()
     {
         return name;
     }
 
-    private final float minFocusSwitchTime;
-    private final float maxFocusSwitchTime;
+    private float minFocusSwitchTime;
+    private float maxFocusSwitchTime;
 
-    private final int candidateMaxCount;
-    private final float candidateHottestRank;
-    private final float candidateHottestWeight;
-    private final float candidateColdestRank;
-    private final float candidateColdestWeight;
+    private int candidateMaxCount;
+    private float candidateHottestRank;
+    private float candidateHottestWeight;
+    private float candidateColdestRank;
+    private float candidateColdestWeight;
 
     private final List<Pair<CameraShotType, Float>> cameraShotTypes = new ArrayList<>();
     private CameraShotType cameraShotType;
 
-    public Cameraman(@NotNull Map<?, ?> config)
+    public Cameraman() {}
+
+    public Cameraman loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
-        this.name = (String) config.get("name");
-        this.minFocusSwitchTime = ((Number) config.get("minFocusSwitchTime")).floatValue();
-        this.maxFocusSwitchTime = ((Number) config.get("maxFocusSwitchTime")).floatValue();
+        this.name = configNode.node("name").getString();
+        this.minFocusSwitchTime = configNode.node("minFocusSwitchTime").getFloat();
+        this.maxFocusSwitchTime = configNode.node("maxFocusSwitchTime").getFloat();
 
-        Map<?, ?> candidateFocuses = (Map<?, ?>) config.get("candidateFocuses");
-        this.candidateMaxCount = ((Number) candidateFocuses.get("maxCount")).intValue();
-        this.candidateHottestRank = ((Number) candidateFocuses.get("hottest")).floatValue();
-        this.candidateHottestWeight = ((Number) candidateFocuses.get("hottestWeight")).floatValue();
-        this.candidateColdestRank = ((Number) candidateFocuses.get("coldest")).floatValue();
-        this.candidateColdestWeight = ((Number) candidateFocuses.get("coldestWeight")).floatValue();
+        ConfigurationNode candidateFocusesNode = configNode.node("candidateFocuses");
+        this.candidateMaxCount = candidateFocusesNode.node("maxCount").getInt();
+        this.candidateHottestRank = candidateFocusesNode.node("hottest").getFloat();
+        this.candidateHottestWeight = candidateFocusesNode.node("hottestWeight").getFloat();
+        this.candidateColdestRank = candidateFocusesNode.node("coldest").getFloat();
+        this.candidateColdestWeight = candidateFocusesNode.node("coldestWeight").getFloat();
 
-        List<Map<?, ?>> shotTypes = (List<Map<?, ?>>) config.get("shotTypes");
-        for (Map<?, ?> shotType : shotTypes)
+        List<? extends ConfigurationNode> shotTypesNodes = configNode.node("shotTypes").childrenList();
+        for (ConfigurationNode shotTypeNode : shotTypesNodes)
         {
-            String type = (String) shotType.get("type");
-            CameraShotType cameraShotType;
+            String type = shotTypeNode.node("type").getString();
+            float weight = shotTypeNode.node("weight").getFloat();
             try
             {
-                cameraShotType = CameraShotType.GetType(type).getConstructor().newInstance();
+                CameraShotType cameraShotType = (CameraShotType) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type).getConstructor().newInstance();
+                this.cameraShotTypes.add(Pair.of(cameraShotType, weight));
             }
-            catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e)
+            catch (ClassNotFoundException e)
             {
-                throw new RuntimeException(e);
+                throw new ConfigurateException(shotTypeNode, "Failed to create CameraShotType: " + type + "\n because " + e.getMessage());
             }
-            float weight = ((Number) shotType.get("weight")).floatValue();
-            this.cameraShotTypes.add(Pair.of(cameraShotType, weight));
+            catch (Exception e)
+            {
+                throw new ConfigurateException(e);
+            }
         }
+        return this;
     }
 
     public void destroy()
     {
-        if(camera != null)
+        if (camera != null)
         {
             camera.remove();
         }
@@ -87,13 +95,17 @@ public class Cameraman
     public void update()
     {
         // check camera
-        if(camera == null || !camera.isValid())
+        if (camera == null || !camera.isValid())
         {
-            camera = CreateCamera(name + "'s Camera", LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted().getFirst().getLocation());
+            camera = CreateCamera(name + "'s Camera", LazyDirector.GetPlugin()
+                                                                  .getHotspotManager()
+                                                                  .getAllHotspotsSorted()
+                                                                  .getFirst()
+                                                                  .getLocation());
         }
 
         // switch focus
-        if(focus == null || !focus.isValid() || focusTime > maxFocusSwitchTime || (focusTime > minFocusSwitchTime && !getCandidateFocuses().contains(focus)))
+        if (focus == null || !focus.isValid() || focusTime > maxFocusSwitchTime || (focusTime > minFocusSwitchTime && !getCandidateFocuses().contains(focus)))
         {
             switchFocus();
         }
@@ -153,7 +165,7 @@ public class Cameraman
     private void switchFocus()
     {
         List<Hotspot> candidateFocuses = getCandidateFocuses();
-        if(!candidateFocuses.isEmpty())
+        if (!candidateFocuses.isEmpty())
         {
             focus = RandomUtils.RandomPickOne(candidateFocuses);
             switchShotType();

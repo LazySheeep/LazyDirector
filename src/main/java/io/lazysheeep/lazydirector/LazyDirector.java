@@ -9,7 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -21,8 +20,12 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.configurate.ConfigurateException;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -62,6 +65,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         plugin = this;
 
         // register command
+        getLogger().log(Level.INFO, "Registering commands");
         PluginCommand command = this.getCommand("lazydirector");
         if (command != null)
         {
@@ -70,58 +74,22 @@ public final class LazyDirector extends JavaPlugin implements Listener
         }
         else
         {
-            getLogger().log(Level.SEVERE, "Cannot get command! Why is that happening?");
+            getLogger().log(Level.SEVERE, "Failed to register command");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
         // load config
-        saveDefaultConfig();
-        FileConfiguration fileConfig = getConfig();
-        // load heat types
-        ConfigurationSection heatTypesConfigSection = fileConfig.getConfigurationSection("heatTypes");
-        if (heatTypesConfigSection != null)
+        getLogger().log(Level.INFO, "Loading configuration...");
+        if(!loadConfig())
         {
-            HeatType.RegisterHeatTypesFromConfig(heatTypesConfigSection);
-        }
-        else
-        {
-            getLogger().log(Level.SEVERE, "Syntax error in configuration file: Section \"heatTypes\" not found!");
+            getLogger().log(Level.SEVERE, "Failed to load configuration!");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
-        // load hotspot manager
-        ConfigurationSection hotspotManagerConfigSection = fileConfig.getConfigurationSection("hotspotManager");
-        if (hotspotManagerConfigSection != null)
-        {
-            hotspotManager = new HotspotManager(hotspotManagerConfigSection);
-        }
-        else
-        {
-            getLogger().log(Level.SEVERE, "Syntax error in configuration file: Section \"hotspotManager\" not found!");
-        }
-        // load actor manager
-        ConfigurationSection actorManagerConfigSection = fileConfig.getConfigurationSection("actorManager");
-        if (actorManagerConfigSection != null)
-        {
-            actorManager = new ActorManager(actorManagerConfigSection);
-        }
-        else
-        {
-            getLogger().log(Level.SEVERE, "Syntax error in configuration file: Section \"actorManager\" not found!");
-        }
-        // load director
-        ConfigurationSection directorConfigSection = fileConfig.getConfigurationSection("director");
-        if (directorConfigSection != null)
-        {
-            director = new Director(directorConfigSection);
-        }
-        else
-        {
-            getLogger().log(Level.SEVERE, "Syntax error in configuration file: Section \"director\" not found!");
-        }
 
         // register events
+        getLogger().log(Level.INFO, "Registering events...");
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(hotspotManager, this);
     }
@@ -132,6 +100,38 @@ public final class LazyDirector extends JavaPlugin implements Listener
         HandlerList.unregisterAll((Plugin) this);
         plugin = null;
         director = null;
+    }
+
+    private boolean loadConfig()
+    {
+        final HoconConfigurationLoader loader = HoconConfigurationLoader.builder().path(Path.of(getDataFolder().getPath(), "config.conf")).build();
+        try
+        {
+            ConfigurationNode rootNode = loader.load();
+
+            ConfigurationNode heatTypesNode = rootNode.node("heatTypes");
+            HeatType.LoadConfig(heatTypesNode);
+
+            ConfigurationNode hotspotManagerNode = rootNode.node("hotspotManager");
+            hotspotManager = new HotspotManager().loadConfig(hotspotManagerNode);
+
+            ConfigurationNode actorManagerNode = rootNode.node("actorManager");
+            actorManager = new ActorManager().loadConfig(actorManagerNode);
+
+            ConfigurationNode directorNode = rootNode.node("director");
+            director = new Director().loadConfig(directorNode);
+        }
+        catch (ConfigurateException e)
+        {
+            getLogger().log(Level.SEVERE, "An error occurred while loading configuration at " + e.getMessage());
+            return false;
+        }
+        catch (Exception e)
+        {
+            getLogger().log(Level.SEVERE, "An error occurred while loading configuration: " + e.getMessage());
+            return false;
+        }
+        return true;
     }
 
     private FileConfiguration loadCustomConfig(String fileName)

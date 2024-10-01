@@ -1,31 +1,19 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'com.gradleup.shadow' version '8.3.2'
     id 'java'
 }
 
 group = 'io.lazysheeep'
 version = '1.0-SNAPSHOT'
 
-def targetJavaVersion = 21
 java {
-    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
 repositories {
     mavenCentral()
-    maven {
-        name = "papermc-repo"
-        url = "https://repo.papermc.io/repository/maven-public/"
-    }
-    maven {
-        name = "sonatype"
-        url = "https://oss.sonatype.org/content/groups/public/"
-    }
+    maven { url = "https://repo.papermc.io/repository/maven-public/" }
+    maven { url = "https://oss.sonatype.org/content/groups/public/" }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
 }
 
@@ -35,7 +23,7 @@ compileJava {
 }
 
 dependencies {
-    compileOnly "io.papermc.paper:paper-api:1.21-R0.1-20240805.181000-127"
+    compileOnly "io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT"
     implementation "org.spongepowered:configurate-hocon:4.1.2"
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
 }
@@ -43,16 +31,13 @@ dependencies {
 shadowJar {
     relocate 'co.aikar.commands', 'io.lazysheeep.lazydirector.acf'
     relocate 'co.aikar.locales', 'io.lazysheeep.lazydirector.locales'
+    mergeServiceFiles()
 }
 
 build.dependsOn shadowJar
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
-        options.release.set(targetJavaVersion)
-    }
 }
 
 processResources {
@@ -65,12 +50,12 @@ processResources {
 }
 
 task copyJar(type: Copy) {
-    from jar
+    from shadowJar.archiveFile
     into file("$rootDir/test/paper server 1.21/plugins")
 }
 
 task copyConfig(type: Copy) {
-    from file("$rootDir/src/main/resources/config.yml")
+    from file("$rootDir/src/main/resources/config.conf")
     into file("$rootDir/test/paper server 1.21/plugins/LazyDirector")
 }
 
