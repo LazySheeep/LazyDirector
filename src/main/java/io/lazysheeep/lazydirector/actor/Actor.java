@@ -1,7 +1,7 @@
 package io.lazysheeep.lazydirector.actor;
 
 import io.lazysheeep.lazydirector.LazyDirector;
-import io.lazysheeep.lazydirector.hotspot.ActorGatheringHotspot;
+import io.lazysheeep.lazydirector.hotspot.ActorGroupHotspot;
 import io.lazysheeep.lazydirector.hotspot.ActorHotspot;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -12,7 +12,7 @@ public class Actor
 {
     public Player hostPlayer;
     public ActorHotspot actorHotspot;
-    public ActorGatheringHotspot actorGatheringHotspot;
+    public ActorGroupHotspot actorGroupHotspot;
 
     Actor(@NotNull Player player)
     {
@@ -24,10 +24,10 @@ public class Actor
     {
         LazyDirector.GetPlugin().getHotspotManager().destroyHotspot(actorHotspot);
         actorHotspot = null;
-        if(actorGatheringHotspot != null)
+        if(actorGroupHotspot != null)
         {
-            actorGatheringHotspot.remove(this);
-            actorGatheringHotspot = null;
+            actorGroupHotspot.remove(this);
+            actorGroupHotspot = null;
         }
         hostPlayer = null;
     }

@@ -1,17 +1,14 @@
 package io.lazysheeep.lazydirector;
 
+import co.aikar.commands.PaperCommandManager;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.lazysheeep.lazydirector.actor.ActorManager;
 import io.lazysheeep.lazydirector.director.Director;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
 import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -26,16 +23,15 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.logging.Level;
 
 public final class LazyDirector extends JavaPlugin implements Listener
 {
-    private static LazyDirector plugin;
+    private static LazyDirector instance;
 
     public static LazyDirector GetPlugin()
     {
-        return plugin;
+        return instance;
     }
 
     private Director director;
@@ -62,22 +58,12 @@ public final class LazyDirector extends JavaPlugin implements Listener
     @Override
     public void onEnable()
     {
-        plugin = this;
+        instance = this;
 
         // register command
         getLogger().log(Level.INFO, "Registering commands");
-        PluginCommand command = this.getCommand("lazydirector");
-        if (command != null)
-        {
-            command.setExecutor(this);
-            command.setTabCompleter(this);
-        }
-        else
-        {
-            getLogger().log(Level.SEVERE, "Failed to register command");
-            Bukkit.getPluginManager().disablePlugin(this);
-            return;
-        }
+        PaperCommandManager commandManager = new PaperCommandManager(this);
+        commandManager.registerCommand(new LazyDirectorCommand());
 
         // load config
         getLogger().log(Level.INFO, "Loading configuration...");
@@ -98,7 +84,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     public void onDisable()
     {
         HandlerList.unregisterAll((Plugin) this);
-        plugin = null;
+        instance = null;
         director = null;
     }
 
@@ -134,7 +120,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         return true;
     }
 
-    private FileConfiguration loadCustomConfig(String fileName)
+    private @Nullable FileConfiguration loadCustomConfig(@NotNull String fileName)
     {
         File configFile = new File(getDataFolder(), fileName);
         if (!configFile.exists())
@@ -150,89 +136,5 @@ public final class LazyDirector extends JavaPlugin implements Listener
         actorManager.update();
         hotspotManager.update();
         director.update();
-    }
-
-    @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args)
-    {
-
-        if (command.getName().equalsIgnoreCase("lazydirector"))
-        {
-            if (args.length == 0)
-            {
-                sender.sendMessage("Usage: /lazydirector <start|stop|attachCamera|detachCamera>");
-                return true;
-            }
-
-            switch (args[0].toLowerCase())
-            {
-                case "start":
-                    // Start logic here
-                    sender.sendMessage("LazyDirector started.");
-                    return true;
-
-                case "stop":
-                    // Stop logic here
-                    sender.sendMessage("LazyDirector stopped.");
-                    return true;
-
-                case "attachcamera":
-                    if (args.length >= 3)
-                    {
-                        String cameraName = args[1];
-                        Player player = getServer().getPlayer(args[2]);
-                        if (player != null)
-                        {
-                            director.getCameraman(cameraName).attachCamera(player);
-                            sender.sendMessage("Camera " + cameraName + " attached to " + player.getName());
-                            return true;
-                        }
-                        else
-                        {
-                            sender.sendMessage("Player not found");
-                            return true;
-                        }
-                    }
-                    else
-                    {
-                        sender.sendMessage("Usage: /lazydirector attachCamera <camera_name> <player_name>");
-                        return true;
-                    }
-
-                case "detachcamera":
-                    if (args.length >= 2)
-                    {
-                        Player player = getServer().getPlayer(args[1]);
-                        if (player != null)
-                        {
-                            // Detach camera logic here
-                            sender.sendMessage("Camera detached from " + player.getName());
-                            return true;
-                        }
-                        else
-                        {
-                            sender.sendMessage("Player not found");
-                            return true;
-                        }
-                    }
-                    else
-                    {
-                        sender.sendMessage("Usage: /lazydirector detachCamera <player_name>");
-                        return true;
-                    }
-
-                default:
-                    sender.sendMessage("Unknown subcommand. Usage: /lazydirector <start|stop|attachCamera|detachCamera>");
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    @Nullable
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args)
-    {
-        return null;
     }
 }

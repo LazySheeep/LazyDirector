@@ -8,11 +8,11 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ActorGatheringHotspot extends Hotspot
+public class ActorGroupHotspot extends Hotspot
 {
     private final List<Actor> actors;
 
-    ActorGatheringHotspot(Actor... initActors)
+    ActorGroupHotspot(Actor... initActors)
     {
         actors = new LinkedList<>(Arrays.asList(initActors));
     }
@@ -27,7 +27,7 @@ public class ActorGatheringHotspot extends Hotspot
     {
         for(Actor actor : actors)
         {
-            actor.actorGatheringHotspot = null;
+            actor.actorGroupHotspot = null;
         }
         actors.clear();
     }
@@ -52,7 +52,7 @@ public class ActorGatheringHotspot extends Hotspot
     }
 
     @Override
-    public String toString()
+    protected String additionalToString()
     {
         return "";
     }

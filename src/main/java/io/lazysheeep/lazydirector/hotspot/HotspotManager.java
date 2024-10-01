@@ -50,12 +50,12 @@ public class HotspotManager implements Listener
         return actorHotspot;
     }
 
-    public ActorGatheringHotspot createActorGatheringHotspot(Actor... initActors)
+    public ActorGroupHotspot createActorGatheringHotspot(Actor... initActors)
     {
-        ActorGatheringHotspot actorGatheringHotspot = new ActorGatheringHotspot(initActors);
-        hotspots.add(actorGatheringHotspot);
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created hotspot: " + actorGatheringHotspot);
-        return actorGatheringHotspot;
+        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot(initActors);
+        hotspots.add(actorGroupHotspot);
+        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created hotspot: " + actorGroupHotspot);
+        return actorGroupHotspot;
     }
 
     public void destroyHotspot(Hotspot hotspot)

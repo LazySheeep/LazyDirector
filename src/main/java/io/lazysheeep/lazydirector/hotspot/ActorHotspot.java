@@ -37,9 +37,9 @@ public class ActorHotspot extends Hotspot
     }
 
     @Override
-    public String toString()
+    public String additionalToString()
     {
-        return "ActorHotspot: actor: " + actor + ", heat: " + getTotalHeat();
+        return "actor=" + actor;
     }
 
 }

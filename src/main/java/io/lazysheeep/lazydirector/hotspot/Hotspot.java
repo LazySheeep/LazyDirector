@@ -13,7 +13,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
 {
     private final List<Heat> heats = new ArrayList<>();
 
-    public Hotspot() {}
+    Hotspot() {}
 
     protected abstract void destroy();
 
@@ -22,9 +22,6 @@ public abstract class Hotspot implements Comparable<Hotspot>
     protected abstract void additionalUpdate();
 
     public abstract Location getLocation();
-
-    @Override
-    public abstract String toString();
 
     final void update()
     {
@@ -84,4 +81,13 @@ public abstract class Hotspot implements Comparable<Hotspot>
     {
         return Float.compare(getTotalHeat(), other.getTotalHeat());
     }
+
+    @Override
+    public String toString()
+    {
+        var className = this.getClass().toString().split("\\.");
+        return "Hotspot{type=" + className[className.length - 1] + "," + additionalToString() + ",heats=" + heats + "}";
+    }
+
+    protected abstract String additionalToString();
 }

@@ -15,10 +15,7 @@ import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
 public class Cameraman
@@ -39,8 +36,7 @@ public class Cameraman
     private float candidateColdestRank;
     private float candidateColdestWeight;
 
-    private final List<Pair<CameraShotType, Float>> cameraShotTypes = new ArrayList<>();
-    private CameraShotType cameraShotType;
+    private final Map<Class<?>, List<Pair<CameraShotType, Float>>> candidateHotspotTypes = new HashMap<>();
 
     public Cameraman() {}
 
@@ -57,19 +53,25 @@ public class Cameraman
         this.candidateColdestRank = candidateFocusesNode.node("coldest").getFloat();
         this.candidateColdestWeight = candidateFocusesNode.node("coldestWeight").getFloat();
 
-        List<? extends ConfigurationNode> shotTypesNodes = configNode.node("shotTypes").childrenList();
-        for (ConfigurationNode shotTypeNode : shotTypesNodes)
+        List<? extends ConfigurationNode> candidateHotspotTypesNodes = candidateFocusesNode.node("hotspotTypes").childrenList();
+        for (ConfigurationNode hotspotTypeNode : candidateHotspotTypesNodes)
         {
-            String type = shotTypeNode.node("type").getString();
-            float weight = shotTypeNode.node("weight").getFloat();
             try
             {
-                CameraShotType cameraShotType = (CameraShotType) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type).getConstructor().newInstance();
-                this.cameraShotTypes.add(Pair.of(cameraShotType, weight));
+                Class<?> hotspotType = Class.forName("io.lazysheeep.lazydirector.hotspot." + hotspotTypeNode.node("type").getString());
+                List<Pair<CameraShotType, Float>> shotTypes = new ArrayList<>();
+                for(ConfigurationNode shotTypeNode : hotspotTypeNode.node("shotTypes").childrenList())
+                {
+                    String type = shotTypeNode.node("type").getString();
+                    CameraShotType cameraShotType = (CameraShotType) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type).getConstructor().newInstance();
+                    float weight = shotTypeNode.node("weight").getFloat();
+                    shotTypes.add(Pair.of(cameraShotType, weight));
+                }
+                candidateHotspotTypes.put(hotspotType, shotTypes);
             }
             catch (ClassNotFoundException e)
             {
-                throw new ConfigurateException(shotTypeNode, "Failed to create CameraShotType: " + type + "\n because " + e.getMessage());
+                throw new ConfigurateException(hotspotTypeNode, "Failed to load hotspotTypes because " + e.getMessage());
             }
             catch (Exception e)
             {
@@ -90,6 +92,7 @@ public class Cameraman
     private ArmorStand camera = null;
     private Hotspot focus = null;
     private float focusTime = 0.0f;
+    private CameraShotType cameraShotType = null;
     private final List<Player> outputs = new LinkedList<>();
 
     public void update()
@@ -114,8 +117,17 @@ public class Cameraman
         {
             // update camera location
             cameraShotType.updateCameraLocation(camera, focus.getLocation());
-
+            // if output player is too far from camera location, teleport them
+            for (Player output : outputs)
+            {
+                if (output.getLocation().distance(camera.getLocation()) > 64.0f)
+                {
+                    output.teleport(camera.getLocation());
+                }
+            }
+            // update focus time
             focusTime += 1.0f / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
+            // update hunger
             focus.increase("hunger");
         }
 
@@ -142,6 +154,7 @@ public class Cameraman
 
     public void attachCamera(@NotNull Player player)
     {
+        LazyDirector.GetPlugin().getDirector().detachFromAnyCamera(player);
         outputs.add(player);
         player.setGameMode(GameMode.SPECTATOR);
         player.setSpectatorTarget(camera);
@@ -149,13 +162,17 @@ public class Cameraman
 
     public void detachCamera(@NotNull Player player)
     {
-        outputs.remove(player);
-        player.setSpectatorTarget(null);
+        if(outputs.contains(player))
+        {
+            outputs.remove(player);
+            player.setSpectatorTarget(null);
+        }
     }
 
     private @NotNull List<Hotspot> getCandidateFocuses()
     {
         List<Hotspot> sortedHotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
+        sortedHotspots.removeIf(hotspot -> !candidateHotspotTypes.containsKey(hotspot.getClass()));
         int hottestCandidateIndex = (int) Math.floor(candidateHottestRank * sortedHotspots.size());
         int coldestCandidateIndex = (int) Math.floor(candidateColdestRank * sortedHotspots.size());
         coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, hottestCandidateIndex + candidateMaxCount), sortedHotspots.size());
@@ -179,6 +196,7 @@ public class Cameraman
 
     private void switchShotType()
     {
+        List<Pair<CameraShotType, Float>> cameraShotTypes = candidateHotspotTypes.get(focus.getClass());
         float totalWeight = (float) cameraShotTypes.stream().mapToDouble(Pair::getRight).sum();
         float random = (float) (Math.random() * totalWeight);
         float sum = 0.0f;
@@ -199,5 +217,11 @@ public class Cameraman
         double dy = target.getY() - origin.getY();
         double dz = target.getZ() - origin.getZ();
         origin.setDirection(new Vector(dx, dy, dz));
+    }
+
+    @Override
+    public String toString()
+    {
+        return "{name=" + name + ",focus=" + focus + ",focusTime=" + focusTime + ",cameraShotType=" + cameraShotType + ",outputs=" + outputs + "}";
     }
 }

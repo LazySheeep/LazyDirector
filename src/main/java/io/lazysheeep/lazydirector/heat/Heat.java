@@ -45,5 +45,11 @@ public class Heat
         }
         return false;
     }
+
+    @Override
+    public String toString()
+    {
+        return "Heat{type=" + type + ",value=" + value + "}";
+    }
 }
 

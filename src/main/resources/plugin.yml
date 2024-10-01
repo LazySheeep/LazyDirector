@@ -5,11 +5,3 @@ api-version: '1.21'
 prefix: LazyDirector
 author: LazySheeep
 description: A minecraft plugin
-
-commands:
-  lazydirector:
-    description: "command of plugin LazyDirector"
-    usage: |
-      Usage: /lazydirector
-    aliases: [lazydirector, ld]
-    permission: op

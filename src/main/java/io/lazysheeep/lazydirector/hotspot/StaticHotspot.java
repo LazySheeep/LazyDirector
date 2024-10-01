@@ -37,8 +37,8 @@ public class StaticHotspot extends Hotspot
     }
 
     @Override
-    public String toString()
+    protected String additionalToString()
     {
-        return "StaticHotspot: " + location + ", heat: " + getTotalHeat();
+        return "location=" + location;
     }
 }

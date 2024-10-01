@@ -12,6 +12,15 @@ public class Director
 {
     private final List<Cameraman> cameramen = new ArrayList<>();
 
+    /**
+     * Get a copy of cameramen
+     * @return A copy of cameramen
+     */
+    public List<Cameraman> getCameramen()
+    {
+        return new ArrayList<>(cameramen);
+    }
+
     public Director() {}
 
     public Director loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
@@ -49,6 +58,14 @@ public class Director
         int index = cameramen.indexOf(currentCameraman);
         Cameraman nextCameraman = cameramen.get(index == cameramen.size() - 1 ? 0 : index + 1);
         nextCameraman.attachCamera(player);
+    }
+
+    public void detachFromAnyCamera(Player player)
+    {
+        for(Cameraman cameraman : cameramen)
+        {
+            cameraman.detachCamera(player);
+        }
     }
 
     public void update()
