@@ -13,7 +13,7 @@ public class StaticHotspot extends Hotspot
     }
 
     @Override
-    protected void destroy()
+    protected void additionalDestroy()
     {
         location = null;
     }

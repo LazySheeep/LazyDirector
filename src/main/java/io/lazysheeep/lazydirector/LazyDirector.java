@@ -25,31 +25,84 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.logging.Level;
 
+/**
+ * <p>
+ *     The main class of the plugin.
+ * </p>
+ */
 public final class LazyDirector extends JavaPlugin implements Listener
 {
+    /**
+     * The singleton instance of the plugin.
+     */
     private static LazyDirector instance;
 
+    /**
+     * <p>
+     *     Get the singleton instance of the plugin.
+     * </p>
+     * @return The singleton instance of the plugin.
+     */
     public static LazyDirector GetPlugin()
     {
         return instance;
     }
 
+    /**
+     * <p>
+     *     A wrapper for logging.
+     * </p>
+     * @param level The level of the log
+     * @param message The message to log
+     */
+    public static void Log(java.util.logging.Level level, String message)
+    {
+        instance.getLogger().log(level, message);
+    }
+
+    /**
+     * The director instance.
+     */
     private Director director;
 
+    /**
+     * <p>
+     *     Get the director instance.
+     * </p>
+     * @return The director instance
+     */
     public Director getDirector()
     {
         return director;
     }
 
+    /**
+     * The actor manager instance.
+     */
     private ActorManager actorManager;
 
+    /**
+     * <p>
+     *     Get the actor manager instance.
+     * </p>
+     * @return The actor manager instance
+     */
     public ActorManager getActorManager()
     {
         return actorManager;
     }
 
+    /**
+     * The hotspot manager instance.
+     */
     private HotspotManager hotspotManager;
 
+    /**
+     * <p>
+     *     Get the hotspot manager instance.
+     * </p>
+     * @return The hotspot manager instance
+     */
     public HotspotManager getHotspotManager()
     {
         return hotspotManager;
@@ -61,21 +114,21 @@ public final class LazyDirector extends JavaPlugin implements Listener
         instance = this;
 
         // register command
-        getLogger().log(Level.INFO, "Registering commands");
+        Log(Level.INFO, "Registering commands...");
         PaperCommandManager commandManager = new PaperCommandManager(this);
         commandManager.registerCommand(new LazyDirectorCommand());
 
         // load config
-        getLogger().log(Level.INFO, "Loading configuration...");
+        Log(Level.INFO, "Loading configurations...");
         if(!loadConfig())
         {
-            getLogger().log(Level.SEVERE, "Failed to load configuration!");
+            Log(Level.SEVERE, "Failed to load configurations!");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
         // register events
-        getLogger().log(Level.INFO, "Registering events...");
+        Log(Level.INFO, "Registering events...");
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(hotspotManager, this);
     }
@@ -84,10 +137,21 @@ public final class LazyDirector extends JavaPlugin implements Listener
     public void onDisable()
     {
         HandlerList.unregisterAll((Plugin) this);
-        instance = null;
+        director.destroy();
         director = null;
+        actorManager.destroy();
+        actorManager = null;
+        hotspotManager.destroy();
+        hotspotManager = null;
+        instance = null;
     }
 
+    /**
+     * <p>
+     *     Load the configurations.
+     * </p>
+     * @return True if the configuration is loaded successfully, false otherwise.
+     */
     private boolean loadConfig()
     {
         final HoconConfigurationLoader loader = HoconConfigurationLoader.builder().path(Path.of(getDataFolder().getPath(), "config.conf")).build();
@@ -109,15 +173,29 @@ public final class LazyDirector extends JavaPlugin implements Listener
         }
         catch (ConfigurateException e)
         {
-            getLogger().log(Level.SEVERE, "An error occurred while loading configuration at " + e.getMessage());
+            Log(Level.SEVERE, "An error occurred while loading configuration at " + e.getMessage());
             return false;
         }
         catch (Exception e)
         {
-            getLogger().log(Level.SEVERE, "An error occurred while loading configuration: " + e.getMessage());
+            Log(Level.SEVERE, "An error occurred while loading configuration: " + e.getMessage());
             return false;
         }
         return true;
+    }
+
+    /**
+     * <p>
+     *     Call the update method of the actor manager, hotspot manager, and director.
+     * </p>
+     * @param event The {@link ServerTickStartEvent} event
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onServerTickStart(ServerTickStartEvent event)
+    {
+        actorManager.update();
+        hotspotManager.update();
+        director.update();
     }
 
     private @Nullable FileConfiguration loadCustomConfig(@NotNull String fileName)
@@ -128,13 +206,5 @@ public final class LazyDirector extends JavaPlugin implements Listener
             return null;
         }
         return YamlConfiguration.loadConfiguration(configFile);
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onServerTickStart(ServerTickStartEvent event)
-    {
-        actorManager.update();
-        hotspotManager.update();
-        director.update();
     }
 }

@@ -3,6 +3,7 @@ package io.lazysheeep.lazydirector.hotspot;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.apache.commons.lang3.NotImplementedException;
 import org.bukkit.Location;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -23,12 +24,8 @@ public class ActorGroupHotspot extends Hotspot
     }
 
     @Override
-    protected void destroy()
+    protected void additionalDestroy()
     {
-        for(Actor actor : actors)
-        {
-            actor.actorGroupHotspot = null;
-        }
         actors.clear();
     }
 
@@ -44,9 +41,8 @@ public class ActorGroupHotspot extends Hotspot
         // Do nothing
     }
 
-
     @Override
-    public Location getLocation()
+    public @NotNull Location getLocation()
     {
         throw new NotImplementedException("Not implemented");
     }

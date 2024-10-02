@@ -14,33 +14,53 @@ import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.logging.Level;
 
+/**
+ * <p>
+ *     Cameraman class represents a cameraman who can control a camera to shoot a hotspot.
+ * </p>
+ * <p>
+ *     All cameramen are managed by {@link Director}.
+ *     <br>
+ *     The creation of cameraman only happens when {@link Director} load the configuration.
+ * </p>
+ */
 public class Cameraman
 {
-    private String name;
+    private final String name;
+
+    private final float minFocusSwitchTime;
+    private final float maxFocusSwitchTime;
+
+    private final int candidateMaxCount;
+    private final float candidateHottestRank;
+    private final float candidateHottestWeight;
+    private final float candidateColdestRank;
+    private final float candidateColdestWeight;
+
+    private final Map<Class<?>, List<Pair<CameraShotType, Float>>> candidateHotspotTypes = new HashMap<>();
 
     public @NotNull String getName()
     {
         return name;
     }
 
-    private float minFocusSwitchTime;
-    private float maxFocusSwitchTime;
-
-    private int candidateMaxCount;
-    private float candidateHottestRank;
-    private float candidateHottestWeight;
-    private float candidateColdestRank;
-    private float candidateColdestWeight;
-
-    private final Map<Class<?>, List<Pair<CameraShotType, Float>>> candidateHotspotTypes = new HashMap<>();
-
-    public Cameraman() {}
-
-    public Cameraman loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
+    /**
+     * <p>
+     *     Construct a cameraman from a configuration node.
+     * </p>
+     * <p>
+     *     Cameraman's configuration is immutable, you'll have to create a new one if you want to load a new configuration.
+     * </p>
+     * <p>
+     *     Should only be called by {@link Director}.
+     * </p>
+     * @param configNode The configuration node of the cameraman
+     * @throws ConfigurateException
+     */
+    Cameraman(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
         this.name = configNode.node("name").getString();
         this.minFocusSwitchTime = configNode.node("minFocusSwitchTime").getFloat();
@@ -78,23 +98,96 @@ public class Cameraman
                 throw new ConfigurateException(e);
             }
         }
-        return this;
+
+        LazyDirector.Log(Level.INFO,  "Created cameraman: " + name);
     }
 
+    /**
+     * <p>
+     *     Destroy the cameraman.
+     * </p>
+     */
     public void destroy()
     {
+        LazyDirector.Log(Level.INFO, "Destroying cameraman: " + name);
+        // detach all outputs
+        outputs.forEach(this::detachCamera);
+        outputs.clear();
+        // remove camera
         if (camera != null)
         {
             camera.remove();
         }
+        camera = null;
+        // reset focus
+        focus = null;
+        focusTime = 0.0f;
+        // reset camera shot type
+        cameraShotType = null;
     }
 
-    private ArmorStand camera = null;
+    private Entity camera = null;
     private Hotspot focus = null;
     private float focusTime = 0.0f;
     private CameraShotType cameraShotType = null;
     private final List<Player> outputs = new LinkedList<>();
 
+    /**
+     * <p>
+     *     Create a camera entity.
+     * </p>
+     * @param name The name given to the camera entity
+     * @param location The initial location of the camera entity
+     * @return The created camera entity
+     */
+    private static @NotNull Entity CreateCamera(@NotNull String name, @NotNull Location location)
+    {
+        ArmorStand camera = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+        camera.customName(Component.text(name));
+        camera.setMarker(true);
+        camera.setSmall(true);
+        camera.setInvisible(true);
+        LazyDirector.Log(Level.INFO, "Created camera " + name + " at " + location);
+        return camera;
+    }
+
+    /**
+     * <p>
+     *     Attach a player to the camera.
+     * </p>
+     * @param outputPlayer The player to attach to the camera
+     */
+    public void attachCamera(@NotNull Player outputPlayer)
+    {
+        LazyDirector.GetPlugin().getDirector().detachFromAnyCamera(outputPlayer);
+        outputs.add(outputPlayer);
+        outputPlayer.setGameMode(GameMode.SPECTATOR);
+        outputPlayer.setSpectatorTarget(camera);
+    }
+
+    /**
+     * <p>
+     *     Detach a player from the camera.
+     * </p>
+     * @param outputPlayer The player to detach from the camera
+     */
+    public void detachCamera(@NotNull Player outputPlayer)
+    {
+        if(outputs.contains(outputPlayer))
+        {
+            outputs.remove(outputPlayer);
+            outputPlayer.setSpectatorTarget(null);
+        }
+    }
+
+    /**
+     * <p>
+     *     Update the camera, output players, and switch focus when needed.
+     * </p>
+     * <p>
+     *     This method is called once every tick by {@link Director}.
+     * </p>
+     */
     public void update()
     {
         // check camera
@@ -112,6 +205,9 @@ public class Cameraman
         {
             switchFocus();
         }
+
+        // clear invalid outputs
+        outputs.removeIf(output -> !output.isOnline() || output.getSpectatorTarget() != camera);
 
         if (focus != null)
         {
@@ -141,44 +237,11 @@ public class Cameraman
         }
     }
 
-    private static @NotNull ArmorStand CreateCamera(@NotNull String name, @NotNull Location location)
-    {
-        ArmorStand camera = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-        camera.customName(Component.text(name));
-        camera.setMarker(true);
-        camera.setSmall(true);
-        camera.setInvisible(true);
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created camera " + name + " at " + location);
-        return camera;
-    }
-
-    public void attachCamera(@NotNull Player player)
-    {
-        LazyDirector.GetPlugin().getDirector().detachFromAnyCamera(player);
-        outputs.add(player);
-        player.setGameMode(GameMode.SPECTATOR);
-        player.setSpectatorTarget(camera);
-    }
-
-    public void detachCamera(@NotNull Player player)
-    {
-        if(outputs.contains(player))
-        {
-            outputs.remove(player);
-            player.setSpectatorTarget(null);
-        }
-    }
-
-    private @NotNull List<Hotspot> getCandidateFocuses()
-    {
-        List<Hotspot> sortedHotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
-        sortedHotspots.removeIf(hotspot -> !candidateHotspotTypes.containsKey(hotspot.getClass()));
-        int hottestCandidateIndex = (int) Math.floor(candidateHottestRank * sortedHotspots.size());
-        int coldestCandidateIndex = (int) Math.floor(candidateColdestRank * sortedHotspots.size());
-        coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, hottestCandidateIndex + candidateMaxCount), sortedHotspots.size());
-        return sortedHotspots.subList(hottestCandidateIndex, coldestCandidateIndex);
-    }
-
+    /**
+     * <p>
+     *     Switch the focus.
+     * </p>
+     */
     private void switchFocus()
     {
         List<Hotspot> candidateFocuses = getCandidateFocuses();
@@ -194,6 +257,27 @@ public class Cameraman
         focusTime = 0.0f;
     }
 
+    /**
+     * <p>
+     *     Get the list of candidate focuses.
+     * </p>
+     * @return The list of candidate focuses
+     */
+    private @NotNull List<Hotspot> getCandidateFocuses()
+    {
+        List<Hotspot> sortedHotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
+        sortedHotspots.removeIf(hotspot -> !candidateHotspotTypes.containsKey(hotspot.getClass()));
+        int hottestCandidateIndex = (int) Math.floor(candidateHottestRank * sortedHotspots.size());
+        int coldestCandidateIndex = (int) Math.floor(candidateColdestRank * sortedHotspots.size());
+        coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, hottestCandidateIndex + candidateMaxCount), sortedHotspots.size());
+        return sortedHotspots.subList(hottestCandidateIndex, coldestCandidateIndex);
+    }
+
+    /**
+     * <p>
+     *     Switch the shot type.
+     * </p>
+     */
     private void switchShotType()
     {
         List<Pair<CameraShotType, Float>> cameraShotTypes = candidateHotspotTypes.get(focus.getClass());

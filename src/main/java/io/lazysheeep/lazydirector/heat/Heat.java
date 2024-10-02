@@ -1,14 +1,24 @@
 package io.lazysheeep.lazydirector.heat;
 
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
+import org.jetbrains.annotations.NotNull;
 
+/**
+ * <p>
+ *     Represents a heat with a {@link HeatType} and a value
+ * </p>
+ * <p>
+ *     All heat instances are managed by {@link Hotspot} instances
+ * </p>
+ */
 public class Heat
 {
     private final HeatType type;
     private float value;
 
-    public HeatType getType()
+    public @NotNull HeatType getType()
     {
         return type;
     }
@@ -18,18 +28,41 @@ public class Heat
         return value;
     }
 
-    public Heat(HeatType type)
+    /**
+     * <p>
+     *     Creates a new heat with initial value of 0.0f
+     * </p>
+     * <p>
+     *     Should only be called by {@link Hotspot}
+     * </p>
+     * @param type The {@link HeatType} of the heat
+     */
+    public Heat(@NotNull HeatType type)
     {
         this.type = type;
         this.value = 0.0f;
     }
 
+    /**
+     * <p>
+     *     Increases the heat by the configured amount in the {@link HeatType}
+     * </p>
+     * @param multiplier The multiplier to apply to the heat increment
+     */
     public void increase(float multiplier)
     {
         value += type.getHeatEachIncrement() * multiplier;
         value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
     }
 
+    /**
+     * <p>
+     *     Decreases the heat by the configured amount in the {@link HeatType}
+     * </p>
+     * <p>
+     *     This method is called once every tick by {@link Hotspot}
+     * </p>
+     */
     public void coolDown()
     {
         value -= type.getCoolingRate() / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();

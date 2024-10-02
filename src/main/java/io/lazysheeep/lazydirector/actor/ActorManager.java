@@ -3,11 +3,11 @@ package io.lazysheeep.lazydirector.actor;
 import io.lazysheeep.lazydirector.LazyDirector;
 import org.bukkit.GameMode;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 
@@ -18,17 +18,22 @@ import java.util.logging.Level;
 
 public class ActorManager
 {
-    private static final List<Actor> actors = new LinkedList<>();
-
     private final List<World> stageWorlds = new ArrayList<>();
     private final List<GameMode> actorGameModes = new ArrayList<>();
 
     public ActorManager() {}
 
-    public ActorManager loadConfig(ConfigurationNode configNode) throws ConfigurateException
+    /**
+     * <p>
+     *     Load or reload the configuration for the actor manager.
+     * </p>
+     * @param configNode The actorManager configuration node.
+     * @return The actor manager itself.
+     * @throws ConfigurateException
+     */
+    public @NotNull ActorManager loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
-        stageWorlds.clear();
-        actorGameModes.clear();
+        resetConfig();
 
         for (ConfigurationNode stageWorldNode : configNode.node("stageWorlds").childrenList())
         {
@@ -60,43 +65,140 @@ public class ActorManager
         return this;
     }
 
-    private Actor createActor(@NotNull Player player)
+    /**
+     * <p>
+     *     Reset the configuration.
+     * </p>
+     */
+    private void resetConfig()
     {
-        Actor actor = new Actor(player);
-        player.setMetadata("Actor", new FixedMetadataValue(LazyDirector.GetPlugin(), actor));
+        stageWorlds.clear();
+        actorGameModes.clear();
+    }
+
+    /**
+     * <p>
+     *     Destroy all actors.
+     * </p>
+     */
+    public void destroy()
+    {
+        for (Actor actor : actors)
+        {
+            destroyActor(actor);
+        }
+    }
+
+    private final List<Actor> actors = new LinkedList<>();
+
+    /**
+     * <p>
+     *     Create a new actor.
+     * </p>
+     * <p>
+     *     This should be the only way to create an actor.
+     * </p>
+     * @param hostPlayer The host player
+     * @return The new actor
+     */
+    private Actor createActor(@NotNull Player hostPlayer)
+    {
+        Actor actor = new Actor(hostPlayer);
+        hostPlayer.setMetadata("Actor", new FixedMetadataValue(LazyDirector.GetPlugin(), actor));
         actors.add(actor);
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created actor: " + actor);
+        LazyDirector.Log(Level.INFO, "Created actor: " + actor);
         return actor;
     }
 
-    private void destroyActor(Actor actor)
+    /**
+     * <p>
+     *     Destroy an actor.
+     * </p>
+     * <p>
+     *     This should be the only way to destroy an actor.
+     * </p>
+     * @param actor The actor to destroy
+     */
+    private void destroyActor(@NotNull Actor actor)
     {
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Destroying actor: " + actor);
-        actor.hostPlayer.removeMetadata("Actor", LazyDirector.GetPlugin());
+        LazyDirector.Log(Level.INFO, "Destroying actor: " + actor);
+        if(actor.isValid())
+        {
+            actor.getHostPlayer().removeMetadata("Actor", LazyDirector.GetPlugin());
+        }
         actor.destroy();
         actors.remove(actor);
     }
 
-    public Actor getActor(Player player)
+    /**
+     * <p>
+     *     Get the actor corresponding to a player.
+     * </p>
+     * @param hostPlayer The host player
+     * @return The corresponding actor, or null if the player is not an actor
+     */
+    public @Nullable Actor getActor(@NotNull Player hostPlayer)
     {
-        if (!player.isOnline())
-            return null;
-
-        for (MetadataValue metaData : player.getMetadata("Actor"))
+        for(Actor actor : actors)
         {
-            if (metaData.getOwningPlugin() == LazyDirector.GetPlugin() && metaData.value() instanceof Actor actor)
+            if(actor.isValid() && actor.getHostPlayer().equals(hostPlayer))
+            {
                 return actor;
+            }
         }
-
         return null;
     }
 
+    /**
+     * <p>
+     *     Check if a player has an corresponding actor.
+     * </p>
+     * @param player The player
+     * @return Whether the player is an actor
+     */
+    private boolean isActor(Player player)
+    {
+        return getActor(player) != null;
+    }
+
+    /**
+     * <p>
+     *     Check if a player should be an actor.
+     * </p>
+     * @param player The player
+     * @return Whether the player should be an actor
+     */
+    private boolean shouldBeActor(Player player)
+    {
+        return player.isOnline() && stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode());
+    }
+
+    /**
+     * <p>
+     *     Check if an actor should be an actor.
+     * </p>
+     * @param actor The actor
+     * @return Whether the actor should be an actor
+     */
+    private boolean shouldBeActor(Actor actor)
+    {
+        return actor.isValid() && shouldBeActor(actor.getHostPlayer());
+    }
+
+    /**
+     * <p>
+     *     Maintain the actors list and call the update method of each actor.
+     * </p>
+     * <p>
+     *     Called once every tick by the {@link LazyDirector}.
+     * </p>
+     */
     public void update()
     {
         // Remove actors that should not be actors
         for (Actor actor : actors)
         {
-            if (!shouldBeActor(actor.hostPlayer))
+            if (!shouldBeActor(actor))
             {
                 destroyActor(actor);
             }
@@ -114,20 +216,5 @@ public class ActorManager
         {
             actor.update();
         }
-    }
-
-    private boolean isActor(Player player)
-    {
-        return getActor(player) != null;
-    }
-
-    private boolean shouldBeActor(Actor actor)
-    {
-        return shouldBeActor(actor.hostPlayer);
-    }
-
-    private boolean shouldBeActor(Player player)
-    {
-        return player.isOnline() && stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode());
     }
 }

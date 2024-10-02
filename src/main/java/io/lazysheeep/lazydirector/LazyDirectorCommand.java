@@ -64,7 +64,7 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("List all cameras")
         public void onList(CommandSender sender)
         {
-            List<Cameraman> cameras = LazyDirector.GetPlugin().getDirector().getCameramen();
+            List<Cameraman> cameras = LazyDirector.GetPlugin().getDirector().getAllCameramen();
             sender.sendMessage("Total " + cameras.size() + " Cameras:\n" + cameras);
         }
     }

@@ -13,7 +13,7 @@ public class ActorHotspot extends Hotspot
     }
 
     @Override
-    protected void destroy()
+    protected void additionalDestroy()
     {
         actor = null;
     }
@@ -33,7 +33,7 @@ public class ActorHotspot extends Hotspot
     @Override
     public Location getLocation()
     {
-        return actor.hostPlayer.getEyeLocation();
+        return actor.getHostPlayer().getEyeLocation();
     }
 
     @Override

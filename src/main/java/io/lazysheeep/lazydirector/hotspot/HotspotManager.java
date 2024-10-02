@@ -12,14 +12,31 @@ import org.spongepowered.configurate.ConfigurationNode;
 import java.util.*;
 import java.util.logging.Level;
 
+/**
+ * <p>
+ *     HotspotManager manages all the hotspots in the world.
+ * </p>
+ * <p>
+ *     It is responsible for creating, destroying, and updating hotspots.
+ * </p>
+ */
 public class HotspotManager implements Listener
 {
-    private final List<Hotspot> hotspots = new LinkedList<>();
-
     public HotspotManager() {}
 
+    /**
+     * <p>
+     *     Load configuration for the hotspot manager and create the static hotspots.
+     * </p>
+     * <p>
+     *     Note that all the existing hotspots will be destroyed before loading the configuration.
+     * </p>
+     * @param configNode The configuration node to load the hotspots from
+     * @return The HotspotManager itself
+     */
     public HotspotManager loadConfig(ConfigurationNode configNode)
     {
+        destroy();
         for(ConfigurationNode staticHotspotNode : configNode.node("staticHotspots").childrenList())
         {
             ConfigurationNode locationNode = staticHotspotNode.node("location");
@@ -34,37 +51,28 @@ public class HotspotManager implements Listener
         return this;
     }
 
-    public StaticHotspot createStaticHotspot(Location location, float heat)
+    /**
+     * <p>
+     *     Destroy all hotspots.
+     * </p>
+     */
+    public void destroy()
     {
-        StaticHotspot staticHotspot = new StaticHotspot(location, heat);
-        hotspots.add(staticHotspot);
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created hotspot: " + staticHotspot);
-        return staticHotspot;
+        for(Hotspot hotspot : hotspots)
+        {
+            destroyHotspot(hotspot);
+        }
+        hotspots.clear();
     }
 
-    public ActorHotspot createActorHotspot(Actor actor)
-    {
-        ActorHotspot actorHotspot = new ActorHotspot(actor);
-        hotspots.add(actorHotspot);
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created hotspot: " + actorHotspot);
-        return actorHotspot;
-    }
+    private final List<Hotspot> hotspots = new LinkedList<>();
 
-    public ActorGroupHotspot createActorGatheringHotspot(Actor... initActors)
-    {
-        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot(initActors);
-        hotspots.add(actorGroupHotspot);
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Created hotspot: " + actorGroupHotspot);
-        return actorGroupHotspot;
-    }
-
-    public void destroyHotspot(Hotspot hotspot)
-    {
-        LazyDirector.GetPlugin().getLogger().log(Level.INFO, "Destroying hotspot: " + hotspot);
-        hotspot.destroy();
-        hotspots.remove(hotspot);
-    }
-
+    /**
+     * <p>
+     *     Get all hotspots sorted by heat.
+     * </p>
+     * @return The sorted hotspots
+     */
     public List<Hotspot> getAllHotspotsSorted()
     {
         List<Hotspot> sortedHotspots = new ArrayList<>(hotspots);
@@ -72,6 +80,73 @@ public class HotspotManager implements Listener
         return sortedHotspots.reversed();
     }
 
+    /**
+     * <p>
+     *     Create a static hotspot.
+     * </p>
+     * @param location The location of the hotspot
+     * @param heat The initial heat of the hotspot
+     * @return The created hotspot
+     */
+    public StaticHotspot createStaticHotspot(Location location, float heat)
+    {
+        StaticHotspot staticHotspot = new StaticHotspot(location, heat);
+        hotspots.add(staticHotspot);
+        LazyDirector.Log(Level.INFO, "Created hotspot: " + staticHotspot);
+        return staticHotspot;
+    }
+
+    /**
+     * <p>
+     *     Create an actor hotspot.
+     * </p>
+     * @param actor The actor to create the hotspot for
+     * @return The created hotspot
+     */
+    public ActorHotspot createActorHotspot(Actor actor)
+    {
+        ActorHotspot actorHotspot = new ActorHotspot(actor);
+        hotspots.add(actorHotspot);
+        LazyDirector.Log(Level.INFO, "Created hotspot: " + actorHotspot);
+        return actorHotspot;
+    }
+
+    /**
+     * <p>
+     *     Create an actor group hotspot.
+     * </p>
+     * @param initActors The initial actors in the group
+     * @return The created hotspot
+     */
+    public ActorGroupHotspot createActorGroupHotspot(Actor... initActors)
+    {
+        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot(initActors);
+        hotspots.add(actorGroupHotspot);
+        LazyDirector.Log(Level.INFO, "Created hotspot: " + actorGroupHotspot);
+        return actorGroupHotspot;
+    }
+
+    /**
+     * <p>
+     *     Destroy a hotspot.
+     * </p>
+     * @param hotspot The hotspot to destroy
+     */
+    public void destroyHotspot(Hotspot hotspot)
+    {
+        LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
+        hotspot.destroy();
+        hotspots.remove(hotspot);
+    }
+
+    /**
+     * <p>
+     *     Call the update method of all hotspots.
+     * </p>
+     * <p>
+     *     This method is called every tick by {@link LazyDirector}.
+     * </p>
+     */
     public void update()
     {
         for(Hotspot hotspot : hotspots)
@@ -88,7 +163,7 @@ public class HotspotManager implements Listener
         {
             if(event.hasChangedBlock())
             {
-                actor.actorHotspot.increase("player_movement");
+                actor.getActorHotspot().increase("player_movement");
             }
         }
     }
