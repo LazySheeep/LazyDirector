@@ -5,6 +5,7 @@ import io.lazysheeep.lazydirector.hotspot.ActorGroupHotspot;
 import io.lazysheeep.lazydirector.hotspot.ActorHotspot;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <p>
@@ -75,6 +76,41 @@ public class Actor
 
     /**
      * <p>
+     *     Get the actor group hotspot
+     * </p>
+     * <p>
+     *     If the actor is invalid, an {@link IllegalStateException} will be thrown.
+     * </p>
+     *
+     * @return The actor group hotspot, may be null if the actor don't belong to any group hotspot
+     */
+    public @Nullable ActorGroupHotspot getActorGroupHotspot()
+    {
+        if(isValid())
+        {
+            return actorGroupHotspot;
+        }
+        else
+        {
+            throw new IllegalStateException("Cannot get actor group hotspot: actor is invalid");
+        }
+    }
+
+    public void setActorGroupHotspot(@Nullable ActorGroupHotspot actorGroupHotspot)
+    {
+        if(this.actorGroupHotspot != null)
+        {
+            this.actorGroupHotspot.removeActor(this);
+        }
+        this.actorGroupHotspot = actorGroupHotspot;
+        if(actorGroupHotspot != null)
+        {
+            actorGroupHotspot.addActor(this);
+        }
+    }
+
+    /**
+     * <p>
      *     The constructor of the actor.
      * </p>
      * <p>
@@ -105,21 +141,23 @@ public class Actor
         actorHotspot = null;
         if(actorGroupHotspot != null)
         {
-            actorGroupHotspot.remove(this);
-            actorGroupHotspot = null;
+            setActorGroupHotspot(null);
         }
         hostPlayer = null;
     }
 
     /**
      * <p>
-     *     Check if the actor has a valid host player.
+     *     Check if the actor is valid.
+     * </p>
+     * <p>
+     *     The actor should be valid after creation, and become invalid after being destroyed.
      * </p>
      * @return Whether the actor is valid.
      */
     public boolean isValid()
     {
-        return hostPlayer != null && hostPlayer.isOnline();
+        return hostPlayer != null;
     }
 
     /**
@@ -154,7 +192,22 @@ public class Actor
      */
     void update()
     {
-        // do nothing
+        hostPlayer.getWorld().getNearbyPlayers(hostPlayer.getLocation(), 8.0f).forEach(nearByPlayer -> {
+            if(nearByPlayer != hostPlayer)
+            {
+                Actor nearByActor = LazyDirector.GetPlugin().getActorManager().getActor(nearByPlayer);
+                if(nearByActor != null)
+                {
+                    LazyDirector.GetPlugin().getHotspotManager().joinActorGroupHotspot(this, nearByActor);
+                    actorHotspot.increase("player_group_gathering");
+                }
+            }
+        });
+
+        if(actorHotspot.getHeat("player_group_gathering") <= 0.0f)
+        {
+            setActorGroupHotspot(null);
+        }
     }
 
     @Override

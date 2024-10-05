@@ -75,6 +75,12 @@ public class LazyDirectorCommand extends BaseCommand
         @CommandCompletion("@players @cameramen")
         public void onAttach(CommandSender sender, @Flags("other") Player output, String cameraman)
         {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
             LazyDirector.GetPlugin().getDirector().getCameraman(cameraman).attachCamera(output);
             sender.sendMessage("Attached " + output.getName() + " to cameraman " + cameraman);
         }
@@ -83,6 +89,12 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("Detach output from any camera")
         public void onDetach(CommandSender sender, @Flags("other") Player output)
         {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
             LazyDirector.GetPlugin().getDirector().detachFromAnyCamera(output);
             sender.sendMessage("Detached " + output.getName() + " from any camera");
         }
@@ -95,6 +107,12 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("List all cameras")
         public void onList(CommandSender sender)
         {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
             List<Cameraman> cameras = LazyDirector.GetPlugin().getDirector().getAllCameramen();
             sender.sendMessage("Total " + cameras.size() + " Cameras:\n" + cameras);
         }
@@ -107,6 +125,12 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("List all hotspots")
         public void onList(CommandSender sender)
         {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
             List<Hotspot> hotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
             sender.sendMessage("Total " + hotspots.size() + " Hotspots:\n" + hotspots);
         }

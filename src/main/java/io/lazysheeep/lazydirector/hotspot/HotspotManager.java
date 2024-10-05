@@ -3,6 +3,8 @@ package io.lazysheeep.lazydirector.hotspot;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
+import org.checkerframework.checker.units.qual.N;
+import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.*;
@@ -30,7 +32,7 @@ public class HotspotManager
      * @param configNode The configuration node to load the hotspots from
      * @return The HotspotManager itself
      */
-    public HotspotManager loadConfig(ConfigurationNode configNode)
+    public @NotNull HotspotManager loadConfig(@NotNull ConfigurationNode configNode)
     {
         destroy();
         for(ConfigurationNode staticHotspotNode : configNode.node("staticHotspots").childrenList())
@@ -59,6 +61,7 @@ public class HotspotManager
             destroyHotspot(hotspot);
         }
         hotspots.clear();
+        LazyDirector.Log(Level.INFO, "Destroyed all hotspots");
     }
 
     private final List<Hotspot> hotspots = new LinkedList<>();
@@ -69,7 +72,7 @@ public class HotspotManager
      * </p>
      * @return The sorted hotspots
      */
-    public List<Hotspot> getAllHotspotsSorted()
+    public @NotNull List<Hotspot> getAllHotspotsSorted()
     {
         List<Hotspot> sortedHotspots = new ArrayList<>(hotspots);
         Collections.sort(sortedHotspots);
@@ -84,11 +87,11 @@ public class HotspotManager
      * @param heat The initial heat of the hotspot
      * @return The created hotspot
      */
-    public StaticHotspot createStaticHotspot(Location location, float heat)
+    public @NotNull StaticHotspot createStaticHotspot(@NotNull Location location, float heat)
     {
         StaticHotspot staticHotspot = new StaticHotspot(location, heat);
         hotspots.add(staticHotspot);
-        LazyDirector.Log(Level.INFO, "Created hotspot: " + staticHotspot);
+        LazyDirector.Log(Level.INFO, "Created static hotspot: " + staticHotspot);
         return staticHotspot;
     }
 
@@ -99,27 +102,91 @@ public class HotspotManager
      * @param actor The actor to create the hotspot for
      * @return The created hotspot
      */
-    public ActorHotspot createActorHotspot(Actor actor)
+    public @NotNull ActorHotspot createActorHotspot(@NotNull Actor actor)
     {
         ActorHotspot actorHotspot = new ActorHotspot(actor);
         hotspots.add(actorHotspot);
-        LazyDirector.Log(Level.INFO, "Created hotspot: " + actorHotspot);
+        LazyDirector.Log(Level.INFO, "Created actor hotspot: " + actorHotspot);
         return actorHotspot;
     }
 
     /**
      * <p>
-     *     Create an actor group hotspot.
+     *     Create an empty actor group hotspot.
      * </p>
-     * @param initActors The initial actors in the group
      * @return The created hotspot
      */
-    public ActorGroupHotspot createActorGroupHotspot(Actor... initActors)
+    public @NotNull ActorGroupHotspot createActorGroupHotspot()
     {
-        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot(initActors);
+        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot();
         hotspots.add(actorGroupHotspot);
-        LazyDirector.Log(Level.INFO, "Created hotspot: " + actorGroupHotspot);
+        LazyDirector.Log(Level.INFO, "Created actor group hotspot: " + actorGroupHotspot);
         return actorGroupHotspot;
+    }
+
+    /**
+     * <p>
+     *     Join two actors into the same actor group hotspot.
+     * </p>
+     * <p>
+     *     If both actors are not in any actor group hotspot, create a new one.
+     *     <br>
+     *     If both actors are already in the same actor group hotspot, return it.
+     *     <br>
+     *     If one of the actors is in an actor group hotspot, join the other actor to it.
+     *     <br>
+     *     If both actors are in different actor group hotspots, merge them.
+     * </p>
+     * @param actorA The first actor
+     * @param actorB The second actor
+     * @return The actor group hotspot that the actors are joined in
+     */
+    public @NotNull ActorGroupHotspot joinActorGroupHotspot(@NotNull Actor actorA, @NotNull Actor actorB)
+    {
+        ActorGroupHotspot actorGroupHotspotA = actorA.getActorGroupHotspot();
+        ActorGroupHotspot actorGroupHotspotB = actorB.getActorGroupHotspot();
+        // if same
+        if(actorGroupHotspotA == actorGroupHotspotB)
+        {
+            // if both actorGroupHotspots are null, create a new one
+            if(actorGroupHotspotA == null)
+            {
+                ActorGroupHotspot actorGroupHotspot = createActorGroupHotspot();
+                actorA.setActorGroupHotspot(actorGroupHotspot);
+                actorB.setActorGroupHotspot(actorGroupHotspot);
+                return actorGroupHotspot;
+            }
+            // if both actorGroupHotspots are the same, just return it
+            else
+            {
+                return actorGroupHotspotA;
+            }
+        }
+        // if not same
+        else
+        {
+            // if one of the actorGroupHotspots is null, set this to the other one
+            if(actorGroupHotspotA == null)
+            {
+                actorA.setActorGroupHotspot(actorGroupHotspotB);
+                return actorGroupHotspotB;
+            }
+            else if(actorGroupHotspotB == null)
+            {
+                actorB.setActorGroupHotspot(actorGroupHotspotA);
+                return actorGroupHotspotA;
+            }
+            // if both are not null, merge them
+            else
+            {
+                for(Actor actor : actorGroupHotspotB.getActors())
+                {
+                    actor.setActorGroupHotspot(actorGroupHotspotA);
+                }
+                destroyHotspot(actorGroupHotspotB);
+                return actorGroupHotspotA;
+            }
+        }
     }
 
     /**
@@ -128,11 +195,13 @@ public class HotspotManager
      * </p>
      * @param hotspot The hotspot to destroy
      */
-    public void destroyHotspot(Hotspot hotspot)
+    public void destroyHotspot(@NotNull Hotspot hotspot)
     {
-        LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
-        hotspot.destroy();
-        hotspots.remove(hotspot);
+        if(hotspot.isValid())
+        {
+            LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
+            hotspot.destroy();
+        }
     }
 
     /**
@@ -145,9 +214,14 @@ public class HotspotManager
      */
     public void update()
     {
+        // remove destroyed hotspots
+        hotspots.removeIf(hotspot -> !hotspot.isValid());
+        // update all hotspots
         for(Hotspot hotspot : hotspots)
         {
             hotspot.update();
         }
+        // remove destroyed hotspots
+        hotspots.removeIf(hotspot -> !hotspot.isValid());
     }
 }

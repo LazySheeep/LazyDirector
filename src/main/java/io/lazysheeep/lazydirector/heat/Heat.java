@@ -17,6 +17,7 @@ public class Heat
 {
     private final HeatType type;
     private float value;
+    private boolean increased;
 
     public @NotNull HeatType getType()
     {
@@ -41,6 +42,7 @@ public class Heat
     {
         this.type = type;
         this.value = 0.0f;
+        this.increased = false;
     }
 
     /**
@@ -53,6 +55,7 @@ public class Heat
     {
         value += type.getHeatEachIncrement() * multiplier;
         value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
+        increased = true;
     }
 
     /**
@@ -65,8 +68,12 @@ public class Heat
      */
     public void coolDown()
     {
-        value -= type.getCoolingRate() / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
-        value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
+        if(!increased)
+        {
+            value -= type.getCoolingRate() / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
+            value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
+        }
+        increased = false;
     }
 
     @Override
@@ -82,7 +89,7 @@ public class Heat
     @Override
     public String toString()
     {
-        return "Heat{type=" + type + ",value=" + value + "}";
+        return "{type=" + type + ",value=" + value + "}";
     }
 }
 

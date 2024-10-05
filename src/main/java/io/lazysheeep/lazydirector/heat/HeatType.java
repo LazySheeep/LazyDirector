@@ -60,7 +60,6 @@ public class HeatType
             return;
         }
         VALUES.add(heatType);
-        LazyDirector.Log(Level.INFO, "Registered heatType: " + name);
     }
 
     /**
@@ -88,7 +87,7 @@ public class HeatType
             float coolingRate = heatTypeNode.node("coolingRate").getFloat(0.0f);
             RegisterHeatType(name, maxHeat, heatEachIncrement, coolingRate);
         }
-        LazyDirector.Log(Level.INFO, "Loaded " + VALUES.size() + " heatTypes from configuration");
+        LazyDirector.Log(Level.INFO, "Registered " + VALUES.size() + " heatTypes");
     }
 
     private final String name;

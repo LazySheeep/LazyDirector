@@ -23,7 +23,10 @@ import java.util.logging.Level;
  */
 public abstract class Hotspot implements Comparable<Hotspot>
 {
-    Hotspot() {}
+    Hotspot()
+    {
+        increase("hunger");
+    }
 
     /**
      * Destroy the hotspot.
@@ -43,6 +46,9 @@ public abstract class Hotspot implements Comparable<Hotspot>
      * <p>
      *     Check if the hotspot is valid.
      * </p>
+     * <p>
+     *     The hotspot should be valid after creation, and become invalid after being destroyed.
+     * </p>
      * @return Whether the hotspot is valid
      */
     public abstract boolean isValid();
@@ -55,7 +61,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
      * </p>
      * @return The heat of the hotspot
      */
-    public final float getHeat()
+    public float getHeat()
     {
         float totalHeat = 0;
         for(Heat heat : heats)
@@ -66,6 +72,31 @@ public abstract class Hotspot implements Comparable<Hotspot>
             }
         }
         return totalHeat;
+    }
+
+    /**
+     * <p>
+     *     Get the heat value of the specified heat type.
+     * </p>
+     * @param heatTypeName The name of the heat type
+     * @return The heat of the specified type
+     */
+    public final float getHeat(String heatTypeName)
+    {
+        HeatType type = HeatType.valueOf(heatTypeName);
+        if(type == null)
+        {
+            LazyDirector.Log(Level.WARNING, "Unknown heat type: " + heatTypeName);
+            return 0.0f;
+        }
+        for(Heat heat : heats)
+        {
+            if(heat.getType().equals(type))
+            {
+                return heat.getValue();
+            }
+        }
+        return 0.0f;
     }
 
     /**
@@ -153,7 +184,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
     public String toString()
     {
         var className = this.getClass().toString().split("\\.");
-        return "Hotspot{type=" + className[className.length - 1] + "," + additionalToString() + ",heats=" + heats + "}";
+        return "{type=" + className[className.length - 1] + "," + additionalToString() + ",heats=" + heats + "}";
     }
 
     protected abstract String additionalToString();

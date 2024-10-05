@@ -33,7 +33,6 @@ public class ActorManager
     public @NotNull ActorManager loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
         resetConfig();
-
         for (ConfigurationNode stageWorldNode : configNode.node("stageWorlds").childrenList())
         {
             String worldName = stageWorldNode.getString("no_value");
@@ -86,6 +85,8 @@ public class ActorManager
         {
             destroyActor(actor);
         }
+        actors.clear();
+        LazyDirector.Log(Level.INFO, "Destroyed all actors");
     }
 
     private final List<Actor> actors = new LinkedList<>();
@@ -131,13 +132,12 @@ public class ActorManager
      */
     private void destroyActor(@NotNull Actor actor)
     {
-        LazyDirector.Log(Level.INFO, "Destroying actor: " + actor);
         if(actor.isValid())
         {
+            LazyDirector.Log(Level.INFO, "Destroying actor: " + actor);
             actor.getHostPlayer().removeMetadata("Actor", LazyDirector.GetPlugin());
+            actor.destroy();
         }
-        actor.destroy();
-        actors.remove(actor);
     }
 
     /**
@@ -221,6 +221,8 @@ public class ActorManager
                 createActor(player);
             }
         }
+        // Remove destroyed actors
+        actors.removeIf(actor -> !actor.isValid());
         // Update actors
         for (Actor actor : actors)
         {

@@ -208,7 +208,7 @@ public class Cameraman
         }
 
         // clear invalid outputs
-        outputs.removeIf(output -> !output.isOnline() || output.getSpectatorTarget() != camera);
+        outputs.removeIf(output -> !output.isOnline());
 
         if (focus != null)
         {
