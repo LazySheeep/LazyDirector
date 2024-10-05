@@ -3,10 +3,6 @@ package io.lazysheeep.lazydirector.hotspot;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.*;
@@ -20,7 +16,7 @@ import java.util.logging.Level;
  *     It is responsible for creating, destroying, and updating hotspots.
  * </p>
  */
-public class HotspotManager implements Listener
+public class HotspotManager
 {
     public HotspotManager() {}
 
@@ -152,19 +148,6 @@ public class HotspotManager implements Listener
         for(Hotspot hotspot : hotspots)
         {
             hotspot.update();
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerMove(PlayerMoveEvent event)
-    {
-        Actor actor = LazyDirector.GetPlugin().getActorManager().getActor(event.getPlayer());
-        if(actor != null)
-        {
-            if(event.hasChangedBlock())
-            {
-                actor.getActorHotspot().increase("player_movement");
-            }
         }
     }
 }

@@ -124,6 +124,31 @@ public class Actor
 
     /**
      * <p>
+     *     The shortcut for increasing the heat of the actor hotspot.
+     * </p>
+     * @param heatTypeName The name of the heat type
+     * @see ActorHotspot#increase(String)
+     */
+    public void increase(String heatTypeName)
+    {
+        actorHotspot.increase(heatTypeName);
+    }
+
+    /**
+     * <p>
+     *     The shortcut for increasing the heat of the actor hotspot.
+     * </p>
+     * @param heatTypeName The name of the heat type
+     * @param multiplier The multiplier to apply to the heat increment
+     * @see ActorHotspot#increase(String, float)
+     */
+    public final void increase(String heatTypeName, float multiplier)
+    {
+        actorHotspot.increase(heatTypeName, multiplier);
+    }
+
+    /**
+     * <p>
      *     Called once every tick by the {@link ActorManager}.
      * </p>
      */

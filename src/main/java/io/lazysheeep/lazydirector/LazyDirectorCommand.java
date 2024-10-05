@@ -2,6 +2,7 @@ package io.lazysheeep.lazydirector;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
+import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import org.bukkit.command.CommandSender;
@@ -21,20 +22,49 @@ public class LazyDirectorCommand extends BaseCommand
         sender.sendMessage("Usage: /lazydirector <start|stop|attachCamera|detachCamera>");
     }
 
-    @Subcommand("start")
-    @Description("Start LazyDirector")
-    public void onStart(CommandSender sender)
+    @Subcommand("activate")
+    @Description("Activate LazyDirector")
+    @CommandCompletion("@configNames")
+    public void onActivate(CommandSender sender, String configName)
     {
-        sender.sendMessage("LazyDirector started.");
-        // Start logic here
+        if(LazyDirector.GetPlugin().isActive())
+        {
+            sender.sendMessage("LazyDirector is already activated. Please shutdown first if you want to load another config.");
+            return;
+        }
+        LazyDirector.GetPlugin().activate(configName);
+        sender.sendMessage("LazyDirector activated.");
     }
 
-    @Subcommand("stop")
-    @Description("Stop LazyDirector")
-    public void onStop(CommandSender sender)
+    @Subcommand("shutdown")
+    @Description("Shutdown LazyDirector")
+    public void onShutdown(CommandSender sender)
     {
-        sender.sendMessage("LazyDirector stopped.");
-        // Stop logic here
+        if(!LazyDirector.GetPlugin().isActive())
+        {
+            sender.sendMessage("LazyDirector is not activated.");
+            return;
+        }
+        LazyDirector.GetPlugin().shutdown();
+        sender.sendMessage("LazyDirector has been shutdown");
+    }
+
+    @Subcommand("actor")
+    public class ActorCommand extends BaseCommand
+    {
+        @Subcommand("list")
+        @Description("List all actors")
+        public void onList(CommandSender sender)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
+            List<Actor> actors = LazyDirector.GetPlugin().getActorManager().getAllActors();
+            sender.sendMessage("Total " + actors.size() + " Actors:\n" + actors);
+        }
     }
 
     @Subcommand("output")
@@ -42,6 +72,7 @@ public class LazyDirectorCommand extends BaseCommand
     {
         @Subcommand("attach")
         @Description("Attach output to camera")
+        @CommandCompletion("@players @cameramen")
         public void onAttach(CommandSender sender, @Flags("other") Player output, String cameraman)
         {
             LazyDirector.GetPlugin().getDirector().getCameraman(cameraman).attachCamera(output);

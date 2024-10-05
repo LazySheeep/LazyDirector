@@ -5,7 +5,6 @@ import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.metadata.MetadataValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
@@ -90,6 +89,17 @@ public class ActorManager
     }
 
     private final List<Actor> actors = new LinkedList<>();
+
+    /**
+     * <p>
+     *     Get a copy of all actors.
+     * </p>
+     * @return A copy of all actors
+     */
+    public List<Actor> getAllActors()
+    {
+        return new ArrayList<>(actors);
+    }
 
     /**
      * <p>

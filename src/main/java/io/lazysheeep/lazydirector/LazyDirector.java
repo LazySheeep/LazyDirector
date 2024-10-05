@@ -3,9 +3,11 @@ package io.lazysheeep.lazydirector;
 import co.aikar.commands.PaperCommandManager;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.lazysheeep.lazydirector.actor.ActorManager;
+import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.director.Director;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
+import io.lazysheeep.lazydirector.util.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -24,6 +26,7 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -63,7 +66,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     /**
      * The director instance.
      */
-    private Director director;
+    private final Director director = new Director();
 
     /**
      * <p>
@@ -79,7 +82,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     /**
      * The actor manager instance.
      */
-    private ActorManager actorManager;
+    private final ActorManager actorManager = new ActorManager();
 
     /**
      * <p>
@@ -95,7 +98,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     /**
      * The hotspot manager instance.
      */
-    private HotspotManager hotspotManager;
+    private final HotspotManager hotspotManager = new HotspotManager();
 
     /**
      * <p>
@@ -108,41 +111,95 @@ public final class LazyDirector extends JavaPlugin implements Listener
         return hotspotManager;
     }
 
+    private final HeatEventListener heatEventListener = new HeatEventListener();
+
+    private boolean isActive = false;
+
+    public boolean isActive()
+    {
+        return isActive;
+    }
+
+    /**
+     * <p>
+     *     Active the plugin.
+     * </p>
+     * <p>
+     *     Load the configurations and register events.
+     * </p>
+     * @param configFileName The name of the configuration file.
+     */
+    public void activate(String configFileName)
+    {
+        if(!isActive)
+        {
+            // load config
+            Log(Level.INFO, "Loading configurations...");
+            if(!loadConfig(configFileName))
+            {
+                Log(Level.SEVERE, "Failed to load configurations!");
+                return;
+            }
+            // register events
+            Log(Level.INFO, "Registering events...");
+            Bukkit.getPluginManager().registerEvents(this, this);
+            Bukkit.getPluginManager().registerEvents(heatEventListener, this);
+            // set flag
+            isActive = true;
+        }
+    }
+
+    /**
+     * <p>
+     *     Shutdown the plugin.
+     * </p>
+     * <p>
+     *     Unregister events and destroy the managers.
+     * </p>
+     */
+    public void shutdown()
+    {
+        if(isActive)
+        {
+            // unregister events
+            HandlerList.unregisterAll((Plugin) this);
+            // destroy
+            director.destroy();
+            actorManager.destroy();
+            hotspotManager.destroy();
+            // set flag
+            isActive = false;
+        }
+    }
+
     @Override
     public void onEnable()
     {
+        // set instance
         instance = this;
-
         // register command
         Log(Level.INFO, "Registering commands...");
         PaperCommandManager commandManager = new PaperCommandManager(this);
+        commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath()));
+        commandManager.getCommandCompletions().registerCompletion("cameramen", c -> getDirector().getAllCameramen().stream().map(Cameraman::getName).collect(Collectors.toList()));
         commandManager.registerCommand(new LazyDirectorCommand());
-
-        // load config
-        Log(Level.INFO, "Loading configurations...");
-        if(!loadConfig())
+        // activate
+        if(FileUtils.getAllFileNames(getDataFolder().getPath()).contains("default.conf"))
         {
-            Log(Level.SEVERE, "Failed to load configurations!");
-            Bukkit.getPluginManager().disablePlugin(this);
-            return;
+            activate("default.conf");
         }
-
-        // register events
-        Log(Level.INFO, "Registering events...");
-        Bukkit.getPluginManager().registerEvents(this, this);
-        Bukkit.getPluginManager().registerEvents(hotspotManager, this);
+        else
+        {
+            Log(Level.WARNING, "\"default.conf\" not found, you'll need to activate LazyDirector manually.");
+        }
     }
 
     @Override
     public void onDisable()
     {
-        HandlerList.unregisterAll((Plugin) this);
-        director.destroy();
-        director = null;
-        actorManager.destroy();
-        actorManager = null;
-        hotspotManager.destroy();
-        hotspotManager = null;
+        // shutdown
+        shutdown();
+        // set instance to null
         instance = null;
     }
 
@@ -152,9 +209,9 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * </p>
      * @return True if the configuration is loaded successfully, false otherwise.
      */
-    private boolean loadConfig()
+    private boolean loadConfig(String configFileName)
     {
-        final HoconConfigurationLoader loader = HoconConfigurationLoader.builder().path(Path.of(getDataFolder().getPath(), "config.conf")).build();
+        final HoconConfigurationLoader loader = HoconConfigurationLoader.builder().path(Path.of(getDataFolder().getPath(), configFileName)).build();
         try
         {
             ConfigurationNode rootNode = loader.load();
@@ -163,13 +220,13 @@ public final class LazyDirector extends JavaPlugin implements Listener
             HeatType.LoadConfig(heatTypesNode);
 
             ConfigurationNode hotspotManagerNode = rootNode.node("hotspotManager");
-            hotspotManager = new HotspotManager().loadConfig(hotspotManagerNode);
+            hotspotManager.loadConfig(hotspotManagerNode);
 
             ConfigurationNode actorManagerNode = rootNode.node("actorManager");
-            actorManager = new ActorManager().loadConfig(actorManagerNode);
+            actorManager.loadConfig(actorManagerNode);
 
             ConfigurationNode directorNode = rootNode.node("director");
-            director = new Director().loadConfig(directorNode);
+            director.loadConfig(directorNode);
         }
         catch (ConfigurateException e)
         {

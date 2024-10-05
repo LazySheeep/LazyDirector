@@ -2,6 +2,7 @@ package io.lazysheeep.lazydirector.director;
 
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.camerashottype.CameraShotType;
+import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.RandomUtils;
 import net.kyori.adventure.text.Component;
@@ -223,8 +224,8 @@ public class Cameraman
             }
             // update focus time
             focusTime += 1.0f / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
-            // update hunger
-            focus.increase("hunger");
+            // call event
+            new HotspotBeingFocusedEvent(focus, this).callEvent();
         }
 
         // switch cameraman for output players if they break away
