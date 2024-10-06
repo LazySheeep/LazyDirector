@@ -46,10 +46,6 @@ public class ActorManager
                 throw new ConfigurateException(stageWorldNode, "World not found: " + worldName);
             }
         }
-        if(stageWorlds.isEmpty())
-        {
-            throw new ConfigurateException(configNode.node("stageWorlds"), "No stage worlds found");
-        }
         for (ConfigurationNode actorGameModeNode : configNode.node("actorGameModes").childrenList())
         {
             String gameModeName = actorGameModeNode.getString("no_value");
@@ -180,7 +176,7 @@ public class ActorManager
      */
     private boolean shouldBeActor(Player player)
     {
-        return player.isOnline() && stageWorlds.contains(player.getWorld()) && actorGameModes.contains(player.getGameMode());
+        return player.isOnline() && (stageWorlds.isEmpty() || stageWorlds.contains(player.getWorld())) && actorGameModes.contains(player.getGameMode());
     }
 
     /**

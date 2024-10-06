@@ -25,6 +25,7 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -235,7 +236,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         }
         catch (Exception e)
         {
-            Log(Level.SEVERE, "An error occurred while loading configuration: " + e.getMessage());
+            Log(Level.SEVERE, "An error occurred while loading configuration: " + Arrays.toString(e.getStackTrace()));
             return false;
         }
         return true;

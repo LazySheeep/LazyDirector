@@ -20,12 +20,12 @@ import java.util.logging.Level;
 
 /**
  * <p>
- *     Cameraman class represents a cameraman who can control a camera to shoot a hotspot.
+ * Cameraman class represents a cameraman who can control a camera to shoot a hotspot.
  * </p>
  * <p>
- *     All cameramen are managed by {@link Director}.
- *     <br>
- *     The creation of cameraman only happens when {@link Director} load the configuration.
+ * All cameramen are managed by {@link Director}.
+ * <br>
+ * The creation of cameraman only happens when {@link Director} load the configuration.
  * </p>
  */
 public class Cameraman
@@ -50,14 +50,15 @@ public class Cameraman
 
     /**
      * <p>
-     *     Construct a cameraman from a configuration node.
+     * Construct a cameraman from a configuration node.
      * </p>
      * <p>
-     *     Cameraman's configuration is immutable, you'll have to create a new one if you want to load a new configuration.
+     * Cameraman's configuration is immutable, you'll have to create a new one if you want to load a new configuration.
      * </p>
      * <p>
-     *     Should only be called by {@link Director}.
+     * Should only be called by {@link Director}.
      * </p>
+     *
      * @param configNode The configuration node of the cameraman
      * @throws ConfigurateException
      */
@@ -74,17 +75,21 @@ public class Cameraman
         this.candidateColdestRank = candidateFocusesNode.node("coldest").getFloat();
         this.candidateColdestWeight = candidateFocusesNode.node("coldestWeight").getFloat();
 
-        List<? extends ConfigurationNode> candidateHotspotTypesNodes = candidateFocusesNode.node("hotspotTypes").childrenList();
+        List<? extends ConfigurationNode> candidateHotspotTypesNodes = candidateFocusesNode.node("hotspotTypes")
+                                                                                           .childrenList();
         for (ConfigurationNode hotspotTypeNode : candidateHotspotTypesNodes)
         {
             try
             {
-                Class<?> hotspotType = Class.forName("io.lazysheeep.lazydirector.hotspot." + hotspotTypeNode.node("type").getString());
+                Class<?> hotspotType = Class.forName("io.lazysheeep.lazydirector.hotspot." + hotspotTypeNode.node("type")
+                                                                                                            .getString());
                 List<Pair<CameraShotType, Float>> shotTypes = new ArrayList<>();
-                for(ConfigurationNode shotTypeNode : hotspotTypeNode.node("shotTypes").childrenList())
+                for (ConfigurationNode shotTypeNode : hotspotTypeNode.node("shotTypes").childrenList())
                 {
                     String type = shotTypeNode.node("type").getString();
-                    CameraShotType cameraShotType = (CameraShotType) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type).getConstructor().newInstance();
+                    CameraShotType cameraShotType = (CameraShotType) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type)
+                                                                          .getConstructor()
+                                                                          .newInstance();
                     float weight = shotTypeNode.node("weight").getFloat();
                     shotTypes.add(Pair.of(cameraShotType, weight));
                 }
@@ -100,12 +105,12 @@ public class Cameraman
             }
         }
 
-        LazyDirector.Log(Level.INFO,  "Created cameraman: " + name);
+        LazyDirector.Log(Level.INFO, "Created cameraman: " + name);
     }
 
     /**
      * <p>
-     *     Destroy the cameraman.
+     * Destroy the cameraman.
      * </p>
      */
     public void destroy()
@@ -135,9 +140,10 @@ public class Cameraman
 
     /**
      * <p>
-     *     Create a camera entity.
+     * Create a camera entity.
      * </p>
-     * @param name The name given to the camera entity
+     *
+     * @param name     The name given to the camera entity
      * @param location The initial location of the camera entity
      * @return The created camera entity
      */
@@ -154,8 +160,9 @@ public class Cameraman
 
     /**
      * <p>
-     *     Attach a player to the camera.
+     * Attach a player to the camera.
      * </p>
+     *
      * @param outputPlayer The player to attach to the camera
      */
     public void attachCamera(@NotNull Player outputPlayer)
@@ -168,13 +175,14 @@ public class Cameraman
 
     /**
      * <p>
-     *     Detach a player from the camera.
+     * Detach a player from the camera.
      * </p>
+     *
      * @param outputPlayer The player to detach from the camera
      */
     public void detachCamera(@NotNull Player outputPlayer)
     {
-        if(outputs.contains(outputPlayer))
+        if (outputs.contains(outputPlayer))
         {
             outputs.remove(outputPlayer);
             outputPlayer.setSpectatorTarget(null);
@@ -183,10 +191,10 @@ public class Cameraman
 
     /**
      * <p>
-     *     Update the camera, output players, and switch focus when needed.
+     * Update the camera, output players, and switch focus when needed.
      * </p>
      * <p>
-     *     This method is called once every tick by {@link Director}.
+     * This method is called once every tick by {@link Director}.
      * </p>
      */
     public void update()
@@ -196,8 +204,7 @@ public class Cameraman
         {
             camera = CreateCamera(name + "'s Camera", LazyDirector.GetPlugin()
                                                                   .getHotspotManager()
-                                                                  .getAllHotspotsSorted()
-                                                                  .getFirst()
+                                                                  .getDefaultHotspot()
                                                                   .getLocation());
         }
 
@@ -210,23 +217,20 @@ public class Cameraman
         // clear invalid outputs
         outputs.removeIf(output -> !output.isOnline());
 
-        if (focus != null)
+        // update camera location
+        cameraShotType.updateCameraLocation(camera, focus.getLocation());
+        // if output player is too far from camera location, teleport them
+        for (Player output : outputs)
         {
-            // update camera location
-            cameraShotType.updateCameraLocation(camera, focus.getLocation());
-            // if output player is too far from camera location, teleport them
-            for (Player output : outputs)
+            if (output.getLocation().getWorld() != camera.getLocation().getWorld() || output.getLocation().distance(camera.getLocation()) > 64.0f)
             {
-                if (output.getLocation().distance(camera.getLocation()) > 64.0f)
-                {
-                    output.teleport(camera.getLocation());
-                }
+                output.teleport(camera.getLocation());
             }
-            // update focus time
-            focusTime += 1.0f / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
-            // call event
-            new HotspotBeingFocusedEvent(focus, this).callEvent();
         }
+        // update focus time
+        focusTime += 1.0f / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
+        // call event
+        new HotspotBeingFocusedEvent(focus, this).callEvent();
 
         // switch cameraman for output players if they break away
         for (Player player : outputs)
@@ -240,7 +244,7 @@ public class Cameraman
 
     /**
      * <p>
-     *     Switch the focus.
+     * Switch the focus.
      * </p>
      */
     private void switchFocus()
@@ -253,15 +257,16 @@ public class Cameraman
         }
         else
         {
-            focus = null;
+            throw new RuntimeException("No candidate focus");
         }
         focusTime = 0.0f;
     }
 
     /**
      * <p>
-     *     Get the list of candidate focuses.
+     * Get the list of candidate focuses.
      * </p>
+     *
      * @return The list of candidate focuses
      */
     private @NotNull List<Hotspot> getCandidateFocuses()
@@ -271,12 +276,14 @@ public class Cameraman
         int hottestCandidateIndex = (int) Math.floor(candidateHottestRank * sortedHotspots.size());
         int coldestCandidateIndex = (int) Math.floor(candidateColdestRank * sortedHotspots.size());
         coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, hottestCandidateIndex + candidateMaxCount), sortedHotspots.size());
-        return sortedHotspots.subList(hottestCandidateIndex, coldestCandidateIndex);
+        List<Hotspot> candidateFocus = sortedHotspots.subList(hottestCandidateIndex, coldestCandidateIndex);
+        // return the default hotspot if no candidate focus
+        return candidateFocus.isEmpty() ? Collections.singletonList(LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot()) : candidateFocus;
     }
 
     /**
      * <p>
-     *     Switch the shot type.
+     * Switch the shot type.
      * </p>
      */
     private void switchShotType()

@@ -15,7 +15,7 @@ public class BirdsEyeShot extends CameraShotType
         Location targetLocation = focusLocation.add(5.0f, 5.0f, 5.0f).setDirection(new Vector(-1.0f, -1.0f, -1.0f));
 
         Location currentLocation = camera.getLocation();
-        if(currentLocation.getWorld() != targetLocation.getWorld() || currentLocation.distance(targetLocation) > 128.0f)
+        if(currentLocation.getWorld() != targetLocation.getWorld() || currentLocation.distance(targetLocation) > 64.0f)
         {
             camera.teleport(targetLocation);
         }

@@ -3,6 +3,7 @@ package io.lazysheeep.lazydirector.hotspot;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.checkerframework.checker.units.qual.N;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurationNode;
@@ -35,17 +36,15 @@ public class HotspotManager
     public @NotNull HotspotManager loadConfig(@NotNull ConfigurationNode configNode)
     {
         destroy();
+        // load default hotspot
+        defaultHotspot = new StaticHotspot(configNode.node("defaultHotspot"));
+        LazyDirector.Log(Level.INFO, "Loaded default hotspot: " + defaultHotspot);
+        // load static hotspots
         for(ConfigurationNode staticHotspotNode : configNode.node("staticHotspots").childrenList())
         {
-            ConfigurationNode locationNode = staticHotspotNode.node("location");
-            String worldName = locationNode.node("world").getString();
-            float x = locationNode.node("x").getFloat();
-            float y = locationNode.node("y").getFloat();
-            float z = locationNode.node("z").getFloat();
-            Location location = new Location(LazyDirector.GetPlugin().getServer().getWorld(worldName), x, y, z);
-            float heat = staticHotspotNode.node("heat").getFloat();
-            createStaticHotspot(location, heat);
+            createStaticHotspot(staticHotspotNode);
         }
+        LazyDirector.Log(Level.INFO, "Loaded " + hotspots.size() + " static hotspots");
         return this;
     }
 
@@ -61,10 +60,16 @@ public class HotspotManager
             destroyHotspot(hotspot);
         }
         hotspots.clear();
+        if(defaultHotspot != null)
+        {
+            destroyHotspot(defaultHotspot);
+            defaultHotspot = null;
+        }
         LazyDirector.Log(Level.INFO, "Destroyed all hotspots");
     }
 
     private final List<Hotspot> hotspots = new LinkedList<>();
+    private Hotspot defaultHotspot = null;
 
     /**
      * <p>
@@ -81,6 +86,17 @@ public class HotspotManager
 
     /**
      * <p>
+     *     Get the default hotspot.
+     * </p>
+     * @return The default hotspot
+     */
+    public @NotNull Hotspot getDefaultHotspot()
+    {
+        return defaultHotspot;
+    }
+
+    /**
+     * <p>
      *     Create a static hotspot.
      * </p>
      * @param location The location of the hotspot
@@ -90,6 +106,21 @@ public class HotspotManager
     public @NotNull StaticHotspot createStaticHotspot(@NotNull Location location, float heat)
     {
         StaticHotspot staticHotspot = new StaticHotspot(location, heat);
+        hotspots.add(staticHotspot);
+        LazyDirector.Log(Level.INFO, "Created static hotspot: " + staticHotspot);
+        return staticHotspot;
+    }
+
+    /**
+     * <p>
+     *     Create a static hotspot.
+     * </p>
+     * @param staticHotspotConfigNode The configuration node to create the hotspot from
+     * @return The created hotspot
+     */
+    public @NotNull StaticHotspot createStaticHotspot(@NotNull ConfigurationNode staticHotspotConfigNode)
+    {
+        StaticHotspot staticHotspot = new StaticHotspot(staticHotspotConfigNode);
         hotspots.add(staticHotspot);
         LazyDirector.Log(Level.INFO, "Created static hotspot: " + staticHotspot);
         return staticHotspot;
