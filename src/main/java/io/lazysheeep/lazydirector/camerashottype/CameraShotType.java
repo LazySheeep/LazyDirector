@@ -1,17 +1,18 @@
 package io.lazysheeep.lazydirector.camerashottype;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class CameraShotType
 {
+
     /**
      * <p>
-     *     Updates the location of the camera entity corresponding to the focus location.
+     *     Get the next camera location.
      * </p>
-     * @param camera An entity that represents the camera
-     * @param focusLocation The location that the camera should focus on
+     * @param currentCameraLocation The current camera location
+     * @param focusLocation The focus location
+     * @return The next camera location
      */
-    public abstract void updateCameraLocation(@NotNull Entity camera, @NotNull Location focusLocation);
+    public abstract Location getNextCameraLocation(@NotNull Location currentCameraLocation, @NotNull Location focusLocation);
 }

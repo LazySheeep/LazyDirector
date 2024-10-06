@@ -5,11 +5,14 @@ import io.lazysheeep.lazydirector.camerashottype.CameraShotType;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.RandomUtils;
+import io.papermc.paper.entity.TeleportFlag;
+import io.papermc.paper.math.Position;
 import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurateException;
@@ -189,6 +192,13 @@ public class Cameraman
         }
     }
 
+    private void refreshSpectatorState(Player output)
+    {
+        output.setSpectatorTarget(null);
+        output.setGameMode(GameMode.SPECTATOR);
+        output.setSpectatorTarget(camera);
+    }
+
     /**
      * <p>
      * Update the camera, output players, and switch focus when needed.
@@ -214,30 +224,33 @@ public class Cameraman
             switchFocus();
         }
 
-        // clear invalid outputs
-        outputs.removeIf(output -> !output.isOnline());
-
-        // update camera location
-        cameraShotType.updateCameraLocation(camera, focus.getLocation());
-        // if output player is too far from camera location, teleport them
-        for (Player output : outputs)
-        {
-            if (output.getLocation().getWorld() != camera.getLocation().getWorld() || output.getLocation().distance(camera.getLocation()) > 64.0f)
-            {
-                output.teleport(camera.getLocation());
-            }
-        }
         // update focus time
         focusTime += 1.0f / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
         // call event
         new HotspotBeingFocusedEvent(focus, this).callEvent();
 
-        // switch cameraman for output players if they break away
+        // update camera location
+        camera.teleport(cameraShotType.getNextCameraLocation(camera.getLocation(), focus.getLocation()));
+
+        // clear invalid outputs
+        outputs.removeIf(output -> !output.isOnline());
+
+        /*// switch cameraman for output players if they break away
         for (Player player : outputs)
         {
             if (player.getSpectatorTarget() == null)
             {
                 LazyDirector.GetPlugin().getDirector().switchCameraman(player, this);
+            }
+        }*/
+
+        // update outputs
+        for (Player output : outputs)
+        {
+            if(output.getSpectatorTarget() != camera)
+            {
+                LazyDirector.Log(Level.INFO, "output.getSpectatorTarget() != camera");
+                refreshSpectatorState(output);
             }
         }
     }
