@@ -70,7 +70,7 @@ public class Heat
     {
         if(!increased)
         {
-            value -= type.getCoolingRate() / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
+            value -= type.getCoolingRate() / LazyDirector.GetServerTickRate();
             value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());
         }
         increased = false;

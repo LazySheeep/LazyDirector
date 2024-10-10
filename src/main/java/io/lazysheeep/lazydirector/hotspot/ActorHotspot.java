@@ -37,12 +37,6 @@ public class ActorHotspot extends Hotspot
     }
 
     @Override
-    public Location getNextLocation()
-    {
-        return getLocation().add(actor.getHostPlayer().getVelocity());
-    }
-
-    @Override
     public String additionalToString()
     {
         return "actor=" + actor;

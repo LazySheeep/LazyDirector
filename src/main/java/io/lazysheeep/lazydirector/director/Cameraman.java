@@ -4,14 +4,13 @@ import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.camerashottype.CameraShotType;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
+import io.lazysheeep.lazydirector.util.MathUtils;
 import io.lazysheeep.lazydirector.util.RandomUtils;
 import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.*;
-import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurateException;
@@ -204,7 +203,7 @@ public class Cameraman
         // check camera
         if (camera == null || !camera.isValid())
         {
-            camera = CreateCamera(name + "'s Camera", LazyDirector.GetPlugin()
+            camera = CreateCamera("LazyDirector.Camera." + name, LazyDirector.GetPlugin()
                                                                   .getHotspotManager()
                                                                   .getDefaultHotspot()
                                                                   .getLocation());
@@ -222,7 +221,15 @@ public class Cameraman
         new HotspotBeingFocusedEvent(focus, this).callEvent();
 
         // update camera location
-        camera.teleport(cameraShotType.getNextCameraLocation(camera.getLocation(), focus.getNextLocation()));
+        Location nextCameraLocation = cameraShotType.updateCameraLocation(focus);
+        if (nextCameraLocation != null)
+        {
+            camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
+        }
+        else
+        {
+            switchFocus();
+        }
 
         // clear invalid outputs
         outputs.removeIf(output -> !output.isOnline());
@@ -270,7 +277,7 @@ public class Cameraman
         List<Hotspot> candidateFocuses = getCandidateFocuses();
         if (!candidateFocuses.isEmpty())
         {
-            focus = RandomUtils.RandomPickOne(candidateFocuses);
+            focus = RandomUtils.PickOne(candidateFocuses);
             switchShotType();
         }
         else

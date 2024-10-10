@@ -85,12 +85,6 @@ public class ActorGroupHotspot extends Hotspot
     }
 
     @Override
-    public Location getNextLocation()
-    {
-        return getLocation();
-    }
-
-    @Override
     protected String additionalToString()
     {
         return "actors=" + actors;

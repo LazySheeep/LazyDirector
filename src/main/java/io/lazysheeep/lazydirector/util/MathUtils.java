@@ -1,8 +1,11 @@
 package io.lazysheeep.lazydirector.util;
 
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class MathUtils
 {
@@ -26,11 +29,11 @@ public class MathUtils
         if (start.getWorld() == end.getWorld())
         {
             double distance = start.distance(end);
-            if(distance < 0.1)
+            if(distance < 0.1d)
             {
                 return end.clone();
             }
-            else if(distance < 64.0)
+            else
             {
                 Location result = start.clone();
                 result.add(end.clone().subtract(start).multiply(t));
@@ -63,14 +66,31 @@ public class MathUtils
 
                 return result;
             }
-            else
-            {
-                return end.clone();
-            }
         }
         else
         {
             return end.clone();
         }
+    }
+
+    public static @NotNull Vector GetDirectionFromPitchAndYaw(double pitch, double yaw)
+    {
+        Vector vector = new Vector();
+        vector.setY(-Math.sin(Math.toRadians(pitch)));
+        double xz = Math.cos(Math.toRadians(pitch));
+        vector.setX(-xz * Math.sin(Math.toRadians(yaw)));
+        vector.setZ(xz * Math.cos(Math.toRadians(yaw)));
+        return vector;
+    }
+
+    public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Location end)
+    {
+        return start.getWorld().rayTraceBlocks(start, end.toVector().subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
+    }
+
+    public static boolean IsVisible(@NotNull Location start, @NotNull Location end)
+    {
+        RayTraceResult result = start.getWorld().rayTraceBlocks(start, end.toVector().subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
+        return result == null;
     }
 }

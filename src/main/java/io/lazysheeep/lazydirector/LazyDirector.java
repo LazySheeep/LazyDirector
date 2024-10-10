@@ -65,6 +65,16 @@ public final class LazyDirector extends JavaPlugin implements Listener
         instance.getLogger().log(level, "[t" + instance.getServer().getCurrentTick() + "] " + message);
     }
 
+    public static float GetServerTickRate()
+    {
+        return instance.getServer().getServerTickManager().getTickRate();
+    }
+
+    public static float GetServerTickDeltaTime()
+    {
+        return 1.0f / instance.getServer().getServerTickManager().getTickRate();
+    }
+
     /**
      * The director instance.
      */

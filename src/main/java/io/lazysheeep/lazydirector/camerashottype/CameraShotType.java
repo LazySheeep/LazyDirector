@@ -1,18 +1,19 @@
 package io.lazysheeep.lazydirector.camerashottype;
 
+import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class CameraShotType
 {
-
     /**
      * <p>
-     *     Get the next camera location.
+     * Update camera location.
      * </p>
-     * @param currentCameraLocation The current camera location
-     * @param focusLocation The focus location
-     * @return The next camera location
+     *
+     * @param focus The focus location
+     * @return The updated camera location
      */
-    public abstract Location getNextCameraLocation(@NotNull Location currentCameraLocation, @NotNull Location focusLocation);
+    public abstract @Nullable Location updateCameraLocation(@NotNull Hotspot focus);
 }
