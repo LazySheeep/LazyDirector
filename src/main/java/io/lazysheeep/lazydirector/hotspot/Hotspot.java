@@ -107,6 +107,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
      */
     public abstract Location getLocation();
 
+    public abstract Location getNextLocation();
 
     /**
      * <p>

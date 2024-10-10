@@ -25,36 +25,48 @@ public class MathUtils
     {
         if (start.getWorld() == end.getWorld())
         {
-            Location result = start.clone();
-            result.add(end.clone().subtract(start).multiply(t));
-            // lerp pitch and yaw
-            // note that pitch is in [-90.0, 90.0] and yaw is in [-180.0, 180.0]
-            result.setPitch(Lerp(start.getPitch(), end.getPitch(), t));
-            float startYaw = start.getYaw();
-            float endYaw = end.getYaw();
-            if (Math.abs(endYaw - startYaw) > 180.0f)
+            double distance = start.distance(end);
+            if(distance < 0.1)
             {
-                if (endYaw > startYaw)
+                return end.clone();
+            }
+            else if(distance < 64.0)
+            {
+                Location result = start.clone();
+                result.add(end.clone().subtract(start).multiply(t));
+                // lerp pitch and yaw
+                // note that pitch is in [-90.0, 90.0] and yaw is in [-180.0, 180.0]
+                result.setPitch(Lerp(start.getPitch(), end.getPitch(), t));
+                float startYaw = start.getYaw();
+                float endYaw = end.getYaw();
+                if (Math.abs(endYaw - startYaw) > 180.0f)
                 {
-                    startYaw += 360.0f;
+                    if (endYaw > startYaw)
+                    {
+                        startYaw += 360.0f;
+                    }
+                    else
+                    {
+                        endYaw += 360.0f;
+                    }
                 }
-                else
+                float resultYaw = Lerp(startYaw, endYaw, t);
+                if (resultYaw < -180.0f)
                 {
-                    endYaw += 360.0f;
+                    resultYaw += 360.0f;
                 }
-            }
-            float resultYaw = Lerp(startYaw, endYaw, t);
-            if (resultYaw < -180.0f)
-            {
-                resultYaw += 360.0f;
-            }
-            else if (resultYaw > 180.0f)
-            {
-                resultYaw -= 360.0f;
-            }
-            result.setYaw(resultYaw);
+                else if (resultYaw > 180.0f)
+                {
+                    resultYaw -= 360.0f;
+                }
+                result.setYaw(resultYaw);
 
-            return result;
+                return result;
+            }
+            else
+            {
+                return end.clone();
+            }
         }
         else
         {

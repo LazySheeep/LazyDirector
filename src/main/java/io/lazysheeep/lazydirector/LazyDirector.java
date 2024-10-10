@@ -1,6 +1,7 @@
 package io.lazysheeep.lazydirector;
 
 import co.aikar.commands.PaperCommandManager;
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.lazysheeep.lazydirector.actor.ActorManager;
 import io.lazysheeep.lazydirector.director.Cameraman;
@@ -61,7 +62,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      */
     public static void Log(java.util.logging.Level level, String message)
     {
-        instance.getLogger().log(level, message);
+        instance.getLogger().log(level, "[t" + instance.getServer().getCurrentTick() + "] " + message);
     }
 
     /**
@@ -191,7 +192,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         }
         else
         {
-            Log(Level.WARNING, "\"default.conf\" not found, you'll need to activate LazyDirector manually.");
+            Log(Level.WARNING, "\"default.conf\" not found, you'll have to activate LazyDirector manually.");
         }
     }
 
@@ -254,6 +255,12 @@ public final class LazyDirector extends JavaPlugin implements Listener
         actorManager.update();
         hotspotManager.update();
         director.update();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onServerTickEnd(ServerTickEndEvent event)
+    {
+        director.lateUpdate();
     }
 
     private @Nullable FileConfiguration loadCustomConfig(@NotNull String fileName)
