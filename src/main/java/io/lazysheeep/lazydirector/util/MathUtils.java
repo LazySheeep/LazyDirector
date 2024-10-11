@@ -26,51 +26,71 @@ public class MathUtils
 
     public static @NotNull Location Lerp(@NotNull Location start, @NotNull Location end, float t)
     {
-        if (start.getWorld() == end.getWorld())
-        {
-            double distance = start.distance(end);
-            if(distance < 0.1d)
-            {
-                return end.clone();
-            }
-            else
-            {
-                Location result = start.clone();
-                result.add(end.clone().subtract(start).multiply(t));
-                // lerp pitch and yaw
-                // note that pitch is in [-90.0, 90.0] and yaw is in [-180.0, 180.0]
-                result.setPitch(Lerp(start.getPitch(), end.getPitch(), t));
-                float startYaw = start.getYaw();
-                float endYaw = end.getYaw();
-                if (Math.abs(endYaw - startYaw) > 180.0f)
-                {
-                    if (endYaw > startYaw)
-                    {
-                        startYaw += 360.0f;
-                    }
-                    else
-                    {
-                        endYaw += 360.0f;
-                    }
-                }
-                float resultYaw = Lerp(startYaw, endYaw, t);
-                if (resultYaw < -180.0f)
-                {
-                    resultYaw += 360.0f;
-                }
-                else if (resultYaw > 180.0f)
-                {
-                    resultYaw -= 360.0f;
-                }
-                result.setYaw(resultYaw);
+        Location result = start.clone();
 
-                return result;
-            }
+        // lerp position
+        double distance = Distance(start, end);
+        if (distance < 0.1d || distance > 64.0d)
+        {
+            result.set(end.getX(), end.getY(), end.getZ());
+            result.setWorld(end.getWorld());
         }
         else
         {
-            return end.clone();
+            result.add(end.clone().subtract(start).multiply(t));
         }
+
+        // lerp pitch
+        // note that pitch is in [-90.0, 90.0]
+        if(Math.abs(end.getPitch() - start.getPitch()) < 0.1f)
+        {
+            result.setPitch(end.getPitch());
+        }
+        else
+        {
+            result.setPitch(Lerp(start.getPitch(), end.getPitch(), t));
+        }
+
+        // lerp yaw
+        // note that yaw is in [-180.0, 180.0]
+        float startYaw = start.getYaw();
+        float endYaw = end.getYaw();
+        if (Math.abs(endYaw - startYaw) > 180.0f)
+        {
+            if (endYaw > startYaw)
+            {
+                startYaw += 360.0f;
+            }
+            else
+            {
+                endYaw += 360.0f;
+            }
+        }
+        float resultYaw = Lerp(startYaw, endYaw, t);
+        if (resultYaw < -180.0f)
+        {
+            resultYaw += 360.0f;
+        }
+        else if (resultYaw > 180.0f)
+        {
+            resultYaw -= 360.0f;
+        }
+
+        if(Math.abs(resultYaw - end.getYaw()) < 0.1f)
+        {
+            result.setYaw(end.getYaw());
+        }
+        else
+        {
+            result.setYaw(resultYaw);
+        }
+
+        return result;
+    }
+
+    public static double Distance(@NotNull Location start, @NotNull Location end)
+    {
+        return start.getWorld() == end.getWorld() ? start.distance(end) : Double.MAX_VALUE;
     }
 
     public static @NotNull Vector GetDirectionFromPitchAndYaw(double pitch, double yaw)
@@ -85,12 +105,16 @@ public class MathUtils
 
     public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Location end)
     {
-        return start.getWorld().rayTraceBlocks(start, end.toVector().subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
+        return start.getWorld()
+                    .rayTraceBlocks(start, end.toVector()
+                                              .subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
     }
 
     public static boolean IsVisible(@NotNull Location start, @NotNull Location end)
     {
-        RayTraceResult result = start.getWorld().rayTraceBlocks(start, end.toVector().subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
+        RayTraceResult result = start.getWorld()
+                                     .rayTraceBlocks(start, end.toVector()
+                                                               .subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
         return result == null;
     }
 }

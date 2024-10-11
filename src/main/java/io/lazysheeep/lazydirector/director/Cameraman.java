@@ -204,9 +204,9 @@ public class Cameraman
         if (camera == null || !camera.isValid())
         {
             camera = CreateCamera("LazyDirector.Camera." + name, LazyDirector.GetPlugin()
-                                                                  .getHotspotManager()
-                                                                  .getDefaultHotspot()
-                                                                  .getLocation());
+                                                                             .getHotspotManager()
+                                                                             .getDefaultHotspot()
+                                                                             .getLocation());
         }
 
         // switch focus
@@ -247,7 +247,7 @@ public class Cameraman
         for (Player output : outputs)
         {
             // BUG: MC-157812 (https://bugs.mojang.com/browse/MC-157812)
-            if (!output.isChunkSent(camera.getChunk()))
+            if (!output.isChunkSent(camera.getChunk()) || MathUtils.Distance(output.getLocation(), camera.getLocation()) > 64.0d)
             {
                 LazyDirector.Log(Level.INFO, "Sending chunk to " + output.getName());
                 output.setGameMode(GameMode.SPECTATOR);

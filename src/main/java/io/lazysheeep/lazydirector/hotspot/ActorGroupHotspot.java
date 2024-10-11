@@ -2,8 +2,10 @@ package io.lazysheeep.lazydirector.hotspot;
 
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
+import io.lazysheeep.lazydirector.util.MathUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.logging.Level;
 public class ActorGroupHotspot extends Hotspot
 {
     private List<Actor> actors = new LinkedList<>();
+    private World world = null;
 
     public List<Actor> getActors()
     {
@@ -26,6 +29,10 @@ public class ActorGroupHotspot extends Hotspot
         if(!actors.contains(actor))
         {
             actors.add(actor);
+            if(world == null)
+            {
+                world = actor.getHostPlayer().getWorld();
+            }
         }
     }
 
@@ -70,6 +77,15 @@ public class ActorGroupHotspot extends Hotspot
         if(actors.isEmpty())
         {
             LazyDirector.GetPlugin().getHotspotManager().destroyHotspot(this);
+            return;
+        }
+        // remove actors that are too far away
+        for(Actor actor : actors)
+        {
+            if(MathUtils.Distance(actor.getHostPlayer().getLocation(), getLocation()) > 32.0d)
+            {
+                actor.setActorGroupHotspot(null);
+            }
         }
     }
 
