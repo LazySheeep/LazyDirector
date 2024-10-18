@@ -8,13 +8,14 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class OverTheShoulderShot extends CameraShotType
+public class OverTheShoulderView extends CameraView
 {
     private static final Vector direction = new Vector(1.0f, 0.2f, -3.0f).normalize();
     private static final float distance = 4.0f;
 
-    public OverTheShoulderShot()
+    public OverTheShoulderView()
     {
+        reset();
     }
 
     @Override
@@ -37,5 +38,11 @@ public class OverTheShoulderShot extends CameraShotType
         }
 
         return nextCameraLocation;
+    }
+
+    @Override
+    public void reset()
+    {
+        // Do nothing
     }
 }

@@ -82,7 +82,7 @@ public class ActorGroupHotspot extends Hotspot
         // remove actors that are too far away
         for(Actor actor : actors)
         {
-            if(MathUtils.Distance(actor.getHostPlayer().getLocation(), getLocation()) > 32.0d)
+            if(actor.getHostPlayer().getWorld() != world || MathUtils.Distance(actor.getHostPlayer().getLocation(), getLocation()) > 32.0d)
             {
                 actor.setActorGroupHotspot(null);
             }

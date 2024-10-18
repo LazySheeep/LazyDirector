@@ -5,7 +5,7 @@ import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class CameraShotType
+public abstract class CameraView
 {
     /**
      * <p>
@@ -16,4 +16,6 @@ public abstract class CameraShotType
      * @return The updated camera location
      */
     public abstract @Nullable Location updateCameraLocation(@NotNull Hotspot focus);
+
+    public abstract void reset();
 }

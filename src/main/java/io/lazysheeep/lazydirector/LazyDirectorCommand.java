@@ -19,7 +19,7 @@ public class LazyDirectorCommand extends BaseCommand
     @Description("LazyDirector main command")
     public void onDefault(CommandSender sender)
     {
-        sender.sendMessage("Usage: /lazydirector <start|stop|attachCamera|detachCamera>");
+        sender.sendMessage("usage: /lazydirector [activate|shutdown|actor|output|camera|hotspot]");
     }
 
     @Subcommand("activate")
@@ -30,10 +30,18 @@ public class LazyDirectorCommand extends BaseCommand
         if(LazyDirector.GetPlugin().isActive())
         {
             sender.sendMessage("LazyDirector is already activated. Please shutdown first if you want to load another config.");
-            return;
         }
-        LazyDirector.GetPlugin().activate(configName);
-        sender.sendMessage("LazyDirector activated.");
+        else
+        {
+            if(LazyDirector.GetPlugin().activate(configName))
+            {
+                sender.sendMessage("LazyDirector activated.");
+            }
+            else
+            {
+                sender.sendMessage("Failed to activate LazyDirector.");
+            }
+        }
     }
 
     @Subcommand("shutdown")
@@ -73,7 +81,7 @@ public class LazyDirectorCommand extends BaseCommand
         @Subcommand("attach")
         @Description("Attach output to camera")
         @CommandCompletion("@players @cameramen")
-        public void onAttach(CommandSender sender, @Flags("other") Player output, String cameraman)
+        public void onAttach(CommandSender sender, @Flags("other") Player output, String cameramanName)
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
@@ -81,8 +89,16 @@ public class LazyDirectorCommand extends BaseCommand
                 return;
             }
 
-            LazyDirector.GetPlugin().getDirector().getCameraman(cameraman).attachCamera(output);
-            sender.sendMessage("Attached " + output.getName() + " to cameraman " + cameraman);
+            Cameraman cameraman = LazyDirector.GetPlugin().getDirector().getCameraman(cameramanName);
+            if(cameraman != null)
+            {
+                cameraman.attachCamera(output);
+                sender.sendMessage("Attached " + output.getName() + " to cameraman " + cameraman.getName());
+            }
+            else
+            {
+                sender.sendMessage("Cameraman " + cameramanName + " not found.");
+            }
         }
 
         @Subcommand("detach")

@@ -9,6 +9,9 @@ import io.lazysheeep.lazydirector.director.Director;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
 import io.lazysheeep.lazydirector.util.FileUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -62,6 +65,11 @@ public final class LazyDirector extends JavaPlugin implements Listener
      */
     public static void Log(java.util.logging.Level level, String message)
     {
+        if(level.intValue() >= Level.WARNING.intValue())
+        {
+            TextColor textColor = level == Level.SEVERE ? NamedTextColor.RED : NamedTextColor.YELLOW;
+            instance.getServer().broadcast(Component.text(message).color(textColor), "bukkit.broadcast.admin");
+        }
         instance.getLogger().log(level, "[t" + instance.getServer().getCurrentTick() + "] " + message);
     }
 
@@ -141,7 +149,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * </p>
      * @param configFileName The name of the configuration file.
      */
-    public void activate(String configFileName)
+    public boolean activate(String configFileName)
     {
         if(!isActive)
         {
@@ -150,7 +158,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
             if(!loadConfig(configFileName))
             {
                 Log(Level.SEVERE, "Failed to load configurations!");
-                return;
+                return false;
             }
             // register events
             Log(Level.INFO, "Registering events...");
@@ -158,7 +166,10 @@ public final class LazyDirector extends JavaPlugin implements Listener
             Bukkit.getPluginManager().registerEvents(heatEventListener, this);
             // set flag
             isActive = true;
+            Log(Level.INFO, "LazyDirector activated");
+            return true;
         }
+        return false;
     }
 
     /**
@@ -181,6 +192,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
             hotspotManager.destroy();
             // set flag
             isActive = false;
+            Log(Level.INFO, "LazyDirector deactivated");
         }
     }
 
@@ -195,6 +207,12 @@ public final class LazyDirector extends JavaPlugin implements Listener
         commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath()));
         commandManager.getCommandCompletions().registerCompletion("cameramen", c -> getDirector().getAllCameramen().stream().map(Cameraman::getName).collect(Collectors.toList()));
         commandManager.registerCommand(new LazyDirectorCommand());
+        // if config folder does not exist, create it and copy the default config
+        if(!getDataFolder().exists())
+        {
+            getDataFolder().mkdir();
+            saveResource("test.conf", false);
+        }
         // activate
         if(FileUtils.getAllFileNames(getDataFolder().getPath()).contains("default.conf"))
         {
@@ -202,7 +220,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         }
         else
         {
-            Log(Level.WARNING, "\"default.conf\" not found, you'll have to activate LazyDirector manually.");
+            Log(Level.WARNING, "\"default.conf\" not found, you will have to activate LazyDirector manually.");
         }
     }
 
@@ -227,6 +245,11 @@ public final class LazyDirector extends JavaPlugin implements Listener
         try
         {
             ConfigurationNode rootNode = loader.load();
+            if(rootNode.empty())
+            {
+                Log(Level.SEVERE, "Empty configuration");
+                return false;
+            }
 
             ConfigurationNode heatTypesNode = rootNode.node("heatTypes");
             HeatType.LoadConfig(heatTypesNode);

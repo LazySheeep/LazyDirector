@@ -9,41 +9,52 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// isometric view
-public class BirdsEyeShot extends CameraShotType
+public class MonitorView extends CameraView
 {
     private static final int MaxTryCount = 3;
     private static final int IterationsEachTry = 10;
     private static final float MaxBadViewTime = 3.0f;
 
-    private static final float MinDistance = 5.0f;
+    private static final float InitDistance = 5.0f;
     private static final float MaxDistance = 10.0f;
 
-    private double pitch = 45.0d;
-    private double yaw = 0.0d;
-    private float distance = MaxDistance;
+    private Location cameraLocation;
 
-    private int tryCount = 0;
-    private float badViewTimer = 0.0f;
+    private int tryCount;
+    private float badViewTimer;
 
-    public BirdsEyeShot() {}
-
-    private @NotNull Location nextCameraLocation(@NotNull Hotspot focus)
+    public MonitorView()
     {
+        reset();
+    }
+
+    private @NotNull Location newCameraLocation(@NotNull Hotspot focus)
+    {
+        double pitch = RandomUtils.NextDouble(-90.0d, 90.0d);
+        double yaw = RandomUtils.NextDouble(-180.0d, 180.0d);
         Vector direction = MathUtils.GetDirectionFromPitchAndYaw(pitch, yaw);
-        return focus.getLocation().add(direction.clone().multiply(distance).multiply(-1.0f)).setDirection(direction);
+        cameraLocation = focus.getLocation().add(direction.clone().multiply(InitDistance).multiply(-1.0f)).setDirection(direction);
+        return cameraLocation;
     }
 
     @Override
     public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
     {
-        Location nextCameraLocation = nextCameraLocation(focus);
-        // check if the focus is visible from the camera
-        if(MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
+        if(cameraLocation == null)
+        {
+            newCameraLocation(focus);
+        }
+        else
+        {
+            Vector nextDirection = focus.getLocation().toVector().subtract(cameraLocation.toVector()).normalize();
+            cameraLocation.setDirection(nextDirection);
+        }
+
+        // check if the focus is not too far and visible from the camera
+        if(MathUtils.Distance(cameraLocation, focus.getLocation()) <= MaxDistance && MathUtils.IsVisible(cameraLocation, focus.getLocation()))
         {
             tryCount = 0;
             badViewTimer = 0.0f;
-            distance = MaxDistance;
         }
         else
         {
@@ -53,14 +64,10 @@ public class BirdsEyeShot extends CameraShotType
                 if(tryCount < MaxTryCount)
                 {
                     int iteration = 0;
-                    distance = MaxDistance;
                     while (iteration < IterationsEachTry)
                     {
-                        pitch = RandomUtils.NextDouble(30.0d, 60.0d);
-                        yaw = RandomUtils.NextDouble(-180.0d, 180.0d);
-                        distance -= (MaxDistance - MinDistance) / IterationsEachTry;
-                        nextCameraLocation = nextCameraLocation(focus);
-                        if (MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
+                        newCameraLocation(focus);
+                        if (MathUtils.IsVisible(cameraLocation, focus.getLocation()))
                         {
                             // success
                             tryCount = -1;
@@ -74,11 +81,20 @@ public class BirdsEyeShot extends CameraShotType
                 {
                     // fail
                     tryCount = 0;
-                    nextCameraLocation = null;
+                    cameraLocation = null;
                 }
                 badViewTimer = 0.0f;
             }
         }
-        return nextCameraLocation;
+
+        return cameraLocation;
+    }
+
+    @Override
+    public void reset()
+    {
+        cameraLocation = null;
+        tryCount = 0;
+        badViewTimer = 0.0f;
     }
 }

@@ -84,7 +84,7 @@ public class Director
                 return cameraman;
             }
         }
-        LazyDirector.Log(Level.WARNING, "Cameraman \"" + name + "\" not found");
+        // LazyDirector.Log(Level.WARNING, "Cameraman \"" + name + "\" not found");
         return null;
     }
 
