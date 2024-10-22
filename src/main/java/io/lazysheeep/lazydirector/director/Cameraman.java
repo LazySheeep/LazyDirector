@@ -352,14 +352,6 @@ public class Cameraman
         }
     }
 
-    public static void LookAt(@NotNull Location origin, @NotNull Location target)
-    {
-        double dx = target.getX() - origin.getX();
-        double dy = target.getY() - origin.getY();
-        double dz = target.getZ() - origin.getZ();
-        origin.setDirection(new Vector(dx, dy, dz));
-    }
-
     @Override
     public String toString()
     {

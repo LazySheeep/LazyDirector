@@ -42,7 +42,7 @@ public class MathUtils
 
         // lerp pitch
         // note that pitch is in [-90.0, 90.0]
-        if(Math.abs(end.getPitch() - start.getPitch()) < 0.1f)
+        if(Math.abs(end.getPitch() - start.getPitch()) < 0.01f)
         {
             result.setPitch(end.getPitch());
         }
@@ -76,7 +76,7 @@ public class MathUtils
             resultYaw -= 360.0f;
         }
 
-        if(Math.abs(resultYaw - end.getYaw()) < 0.1f)
+        if(Math.abs(resultYaw - end.getYaw()) < 0.01f)
         {
             result.setYaw(end.getYaw());
         }
@@ -93,6 +93,22 @@ public class MathUtils
         return start.getWorld() == end.getWorld() ? start.distance(end) : Double.MAX_VALUE;
     }
 
+    public static float UnitMapTo(float value, float minMapTo, float maxMapTo)
+    {
+        return minMapTo + (maxMapTo - minMapTo) * value;
+    }
+
+    public static float MapToUnit(float value, float mapFromMin, float mapFromMax)
+    {
+        return (value - mapFromMin) / (mapFromMax - mapFromMin);
+    }
+
+    public static float Map(float value, float mapFromMin, float mapFromMax, float minMapTo, float maxMapTo)
+    {
+        float unit = MapToUnit(value, mapFromMin, mapFromMax);
+        return UnitMapTo(unit, minMapTo, maxMapTo);
+    }
+
     public static @NotNull Vector GetDirectionFromPitchAndYaw(double pitch, double yaw)
     {
         Vector vector = new Vector();
@@ -101,6 +117,14 @@ public class MathUtils
         vector.setX(-xz * Math.sin(Math.toRadians(yaw)));
         vector.setZ(xz * Math.cos(Math.toRadians(yaw)));
         return vector;
+    }
+
+    public static void LookAt(@NotNull Location origin, @NotNull Location target)
+    {
+        double dx = target.getX() - origin.getX();
+        double dy = target.getY() - origin.getY();
+        double dz = target.getZ() - origin.getZ();
+        origin.setDirection(new Vector(dx, dy, dz));
     }
 
     public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Location end)
