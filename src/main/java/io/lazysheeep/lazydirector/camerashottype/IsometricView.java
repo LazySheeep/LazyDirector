@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 // isometric view
-public class BirdsEyeView extends CameraView
+public class IsometricView extends CameraView
 {
     private static final int MaxTryCount = 3;
     private static final int IterationsEachTry = 10;
@@ -26,7 +26,7 @@ public class BirdsEyeView extends CameraView
     private int tryCount;
     private float badViewTimer;
 
-    public BirdsEyeView()
+    public IsometricView()
     {
         reset();
     }

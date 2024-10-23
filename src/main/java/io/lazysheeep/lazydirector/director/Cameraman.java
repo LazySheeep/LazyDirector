@@ -1,7 +1,7 @@
 package io.lazysheeep.lazydirector.director;
 
 import io.lazysheeep.lazydirector.LazyDirector;
-import io.lazysheeep.lazydirector.camerashottype.BirdsEyeView;
+import io.lazysheeep.lazydirector.camerashottype.IsometricView;
 import io.lazysheeep.lazydirector.camerashottype.CameraView;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
@@ -12,7 +12,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
@@ -38,12 +37,14 @@ public class Cameraman
     private final float minFocusSwitchTime;
     private final float maxFocusSwitchTime;
 
+    private final float cameraViewSwitchTime;
+
     private final int candidateMaxCount;
     private final float candidateHottestRank;
     private final float candidateColdestRank;
 
     private final Map<Class<?>, List<Pair<CameraView, Float>>> candidateHotspotTypes = new HashMap<>();
-    private final CameraView defaultCameraView = new BirdsEyeView();
+    private final CameraView defaultCameraView = new IsometricView();
 
     public @NotNull String getName()
     {
@@ -67,13 +68,14 @@ public class Cameraman
     Cameraman(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
         this.name = configNode.node("name").getString();
-        this.minFocusSwitchTime = configNode.node("minFocusSwitchTime").getFloat();
-        this.maxFocusSwitchTime = configNode.node("maxFocusSwitchTime").getFloat();
+        this.minFocusSwitchTime = configNode.node("minFocusSwitchTime").getFloat(0.0f);
+        this.maxFocusSwitchTime = configNode.node("maxFocusSwitchTime").getFloat(Float.MAX_VALUE);
+        this.cameraViewSwitchTime = configNode.node("cameraViewSwitchTime").getFloat(Float.MAX_VALUE);
 
         ConfigurationNode candidateFocusesNode = configNode.node("candidateFocuses");
-        this.candidateMaxCount = candidateFocusesNode.node("maxCount").getInt();
-        this.candidateHottestRank = candidateFocusesNode.node("hottest").getFloat();
-        this.candidateColdestRank = candidateFocusesNode.node("coldest").getFloat();
+        this.candidateMaxCount = candidateFocusesNode.node("maxCount").getInt(Integer.MAX_VALUE);
+        this.candidateHottestRank = candidateFocusesNode.node("hottest").getFloat(0.0f);
+        this.candidateColdestRank = candidateFocusesNode.node("coldest").getFloat(1.0f);
 
         List<? extends ConfigurationNode> candidateHotspotTypesNodes = candidateFocusesNode.node("hotspotTypes")
                                                                                            .childrenList();
@@ -86,11 +88,11 @@ public class Cameraman
                 List<Pair<CameraView, Float>> cameraViews = new ArrayList<>();
                 for (ConfigurationNode cameraViewNode : hotspotTypeNode.node("cameraViews").childrenList())
                 {
-                    String type = cameraViewNode.node("type").getString();
+                    String type = cameraViewNode.node("type").getString("type_not_found");
                     CameraView cameraView = (CameraView) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type + "View")
                                                               .getConstructor()
                                                               .newInstance();
-                    float weight = cameraViewNode.node("weight").getFloat();
+                    float weight = cameraViewNode.node("weight").getFloat(1.0f);
                     cameraViews.add(Pair.of(cameraView, weight));
                 }
                 candidateHotspotTypes.put(hotspotType, cameraViews);
@@ -126,16 +128,18 @@ public class Cameraman
         }
         camera = null;
         // reset focus
-        focus = null;
-        focusTime = 0.0f;
+        currentFocus = null;
+        focusTimer = 0.0f;
         // reset camera shot type
         currentCameraView = null;
+        cameraViewTimer = 0.0f;
     }
 
     private Entity camera = null;
-    private Hotspot focus = null;
-    private float focusTime = 0.0f;
+    private Hotspot currentFocus = null;
+    private float focusTimer = 0.0f;
     private CameraView currentCameraView = null;
+    private float cameraViewTimer = 0.0f;
     private final List<Player> outputs = new LinkedList<>();
 
     /**
@@ -219,26 +223,32 @@ public class Cameraman
         }
 
         // switch focus
-        if (focus == null || !focus.isValid() || focusTime > maxFocusSwitchTime || (focusTime > minFocusSwitchTime && !getCandidateFocuses().contains(focus)))
+        if (currentFocus == null || !currentFocus.isValid() || focusTimer > maxFocusSwitchTime || (focusTimer > minFocusSwitchTime && !getCandidateFocuses().contains(currentFocus)))
         {
             switchFocus();
+        }
+
+        // switch camera view
+        if (currentCameraView == null || cameraViewTimer > cameraViewSwitchTime)
+        {
             switchCameraView();
         }
 
-        // update focus time
-        focusTime += 1.0f / LazyDirector.GetPlugin().getServer().getServerTickManager().getTickRate();
+        // update timer
+        focusTimer += LazyDirector.GetServerTickDeltaTime();
+        cameraViewTimer += LazyDirector.GetServerTickDeltaTime();
+
         // call event
-        new HotspotBeingFocusedEvent(focus, this).callEvent();
+        new HotspotBeingFocusedEvent(currentFocus, this).callEvent();
 
         // update camera location
-        Location nextCameraLocation = currentCameraView.updateCameraLocation(focus);
+        Location nextCameraLocation = currentCameraView.updateCameraLocation(currentFocus);
         if (nextCameraLocation != null)
         {
             camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
         }
         else
         {
-            switchFocus();
             switchCameraView();
         }
 
@@ -288,13 +298,13 @@ public class Cameraman
         List<Hotspot> candidateFocuses = getCandidateFocuses();
         if (!candidateFocuses.isEmpty())
         {
-            focus = RandomUtils.PickOne(candidateFocuses);
+            currentFocus = RandomUtils.PickOne(candidateFocuses);
         }
         else
         {
             throw new RuntimeException("No candidate focus");
         }
-        focusTime = 0.0f;
+        focusTimer = 0.0f;
     }
 
     /**
@@ -320,7 +330,7 @@ public class Cameraman
 
     /**
      * <p>
-     * Switch the shot type.
+     * Switch camera view type.
      * </p>
      */
     private void switchCameraView()
@@ -329,14 +339,13 @@ public class Cameraman
         {
             currentCameraView.reset();
         }
-
-        if(focus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
+        if(currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
         {
             currentCameraView = defaultCameraView;
         }
         else
         {
-            List<Pair<CameraView, Float>> candidateCameraViews = candidateHotspotTypes.get(focus.getClass());
+            List<Pair<CameraView, Float>> candidateCameraViews = candidateHotspotTypes.get(currentFocus.getClass());
             float totalWeight = (float) candidateCameraViews.stream().mapToDouble(Pair::getRight).sum();
             float random = (float) (Math.random() * totalWeight);
             float sum = 0.0f;
@@ -350,11 +359,12 @@ public class Cameraman
                 }
             }
         }
+        cameraViewTimer = 0.0f;
     }
 
     @Override
     public String toString()
     {
-        return "{name=" + name + ",focus=" + focus + ",focusTime=" + focusTime + ",cameraShotType=" + currentCameraView + ",outputs=" + outputs + "}";
+        return "{name=" + name + ",focus=" + currentFocus + ",focusTime=" + focusTimer + ",cameraShotType=" + currentCameraView + ",outputs=" + outputs + "}";
     }
 }
