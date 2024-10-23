@@ -132,12 +132,4 @@ public class Director
             cameraman.update();
         }
     }
-
-    public void lateUpdate()
-    {
-        for (Cameraman cameraman : cameramen)
-        {
-            cameraman.lateUpdate();
-        }
-    }
 }

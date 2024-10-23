@@ -1,8 +1,8 @@
 package io.lazysheeep.lazydirector.director;
 
 import io.lazysheeep.lazydirector.LazyDirector;
-import io.lazysheeep.lazydirector.camerashottype.IsometricView;
-import io.lazysheeep.lazydirector.camerashottype.CameraView;
+import io.lazysheeep.lazydirector.cameraview.IsometricView;
+import io.lazysheeep.lazydirector.cameraview.CameraView;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
@@ -44,7 +44,7 @@ public class Cameraman
     private final float candidateColdestRank;
 
     private final Map<Class<?>, List<Pair<CameraView, Float>>> candidateHotspotTypes = new HashMap<>();
-    private final CameraView defaultCameraView = new IsometricView();
+    private final CameraView defaultCameraView = new IsometricView(5.0f, 10.0f, 20, 3.0f);
 
     public @NotNull String getName()
     {
@@ -88,10 +88,7 @@ public class Cameraman
                 List<Pair<CameraView, Float>> cameraViews = new ArrayList<>();
                 for (ConfigurationNode cameraViewNode : hotspotTypeNode.node("cameraViews").childrenList())
                 {
-                    String type = cameraViewNode.node("type").getString("type_not_found");
-                    CameraView cameraView = (CameraView) Class.forName("io.lazysheeep.lazydirector.camerashottype." + type + "View")
-                                                              .getConstructor()
-                                                              .newInstance();
+                    CameraView cameraView = CameraView.CreateCameraView(cameraViewNode.node("type"));
                     float weight = cameraViewNode.node("weight").getFloat(1.0f);
                     cameraViews.add(Pair.of(cameraView, weight));
                 }
@@ -243,13 +240,13 @@ public class Cameraman
 
         // update camera location
         Location nextCameraLocation = currentCameraView.updateCameraLocation(currentFocus);
-        if (nextCameraLocation != null)
+        if (nextCameraLocation == null)
         {
-            camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
+            switchCameraView();
         }
         else
         {
-            switchCameraView();
+            camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
         }
 
         // clear invalid outputs
@@ -281,11 +278,6 @@ public class Cameraman
                 output.setSpectatorTarget(camera);
             }
         }
-    }
-
-    public void lateUpdate()
-    {
-
     }
 
     /**

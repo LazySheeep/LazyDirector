@@ -28,9 +28,13 @@ public class MathUtils
     {
         Location result = start.clone();
 
+        final double minDistance = 0.1;
+        final double maxDistance = 128.0;
+        final float minRotation = 0.1f;
+
         // lerp position
         double distance = Distance(start, end);
-        if (distance < 0.1d || distance > 64.0d)
+        if (distance < minDistance || distance > maxDistance)
         {
             result.set(end.getX(), end.getY(), end.getZ());
             result.setWorld(end.getWorld());
@@ -42,7 +46,7 @@ public class MathUtils
 
         // lerp pitch
         // note that pitch is in [-90.0, 90.0]
-        if(Math.abs(end.getPitch() - start.getPitch()) < 0.01f)
+        if(Math.abs(end.getPitch() - start.getPitch()) < minRotation)
         {
             result.setPitch(end.getPitch());
         }
@@ -76,7 +80,7 @@ public class MathUtils
             resultYaw -= 360.0f;
         }
 
-        if(Math.abs(resultYaw - end.getYaw()) < 0.01f)
+        if(Math.abs(resultYaw - end.getYaw()) < minRotation)
         {
             result.setYaw(end.getYaw());
         }

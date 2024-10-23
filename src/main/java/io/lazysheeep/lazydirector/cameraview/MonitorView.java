@@ -1,4 +1,4 @@
-package io.lazysheeep.lazydirector.camerashottype;
+package io.lazysheeep.lazydirector.cameraview;
 
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
@@ -8,23 +8,25 @@ import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.configurate.ConfigurationNode;
 
 public class MonitorView extends CameraView
 {
-    private static final int MaxTryCount = 3;
-    private static final int IterationsEachTry = 10;
-    private static final float MaxBadViewTime = 3.0f;
-
-    private static final float InitDistance = 5.0f;
-    private static final float MaxDistance = 10.0f;
+    private final float initDistance;
+    private final float maxDistance;
+    private final int iterationsEachTry;
+    private final float maxBadViewTime;
 
     private Location cameraLocation;
-
-    private int tryCount;
     private float badViewTimer;
 
-    public MonitorView()
+    public MonitorView(@NotNull ConfigurationNode configNode)
     {
+        initDistance = configNode.node("initDistance").getFloat(0.0f);
+        maxDistance = configNode.node("maxDistance").getFloat(0.0f);
+        iterationsEachTry = configNode.node("iterationsEachTry").getInt(1);
+        maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
+
         reset();
     }
 
@@ -33,7 +35,7 @@ public class MonitorView extends CameraView
         double pitch = RandomUtils.NextDouble(-90.0d, 90.0d);
         double yaw = RandomUtils.NextDouble(-180.0d, 180.0d);
         Vector direction = MathUtils.GetDirectionFromPitchAndYaw(pitch, yaw);
-        cameraLocation = focus.getLocation().add(direction.clone().multiply(InitDistance).multiply(-1.0f)).setDirection(direction);
+        cameraLocation = focus.getLocation().add(direction.clone().multiply(initDistance).multiply(-1.0f)).setDirection(direction);
         return cameraLocation;
     }
 
@@ -51,38 +53,35 @@ public class MonitorView extends CameraView
         }
 
         // check if the focus is not too far and visible from the camera
-        if(MathUtils.Distance(cameraLocation, focus.getLocation()) <= MaxDistance && MathUtils.IsVisible(cameraLocation, focus.getLocation()))
+        if(MathUtils.Distance(cameraLocation, focus.getLocation()) <= maxDistance && MathUtils.IsVisible(cameraLocation, focus.getLocation()))
         {
-            tryCount = 0;
             badViewTimer = 0.0f;
         }
         else
         {
             badViewTimer += LazyDirector.GetServerTickDeltaTime();
-            if(badViewTimer > MaxBadViewTime)
+            if(badViewTimer > maxBadViewTime)
             {
-                if(tryCount < MaxTryCount)
+                boolean success = false;
+                int iteration = 0;
+                while (iteration < iterationsEachTry)
                 {
-                    int iteration = 0;
-                    while (iteration < IterationsEachTry)
+                    newCameraLocation(focus);
+                    if (MathUtils.IsVisible(cameraLocation, focus.getLocation()))
                     {
-                        newCameraLocation(focus);
-                        if (MathUtils.IsVisible(cameraLocation, focus.getLocation()))
-                        {
-                            // success
-                            tryCount = -1;
-                            break;
-                        }
-                        iteration++;
+                        // success
+                        success = true;
+                        break;
                     }
-                    tryCount++;
+                    iteration++;
                 }
-                else
+
+                // fail
+                if(!success)
                 {
-                    // fail
-                    tryCount = 0;
                     cameraLocation = null;
                 }
+
                 badViewTimer = 0.0f;
             }
         }
@@ -94,7 +93,6 @@ public class MonitorView extends CameraView
     public void reset()
     {
         cameraLocation = null;
-        tryCount = 0;
         badViewTimer = 0.0f;
     }
 }

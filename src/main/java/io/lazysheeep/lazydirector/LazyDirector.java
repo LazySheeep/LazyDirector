@@ -289,20 +289,4 @@ public final class LazyDirector extends JavaPlugin implements Listener
         hotspotManager.update();
         director.update();
     }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onServerTickEnd(ServerTickEndEvent event)
-    {
-        director.lateUpdate();
-    }
-
-    private @Nullable FileConfiguration loadCustomConfig(@NotNull String fileName)
-    {
-        File configFile = new File(getDataFolder(), fileName);
-        if (!configFile.exists())
-        {
-            return null;
-        }
-        return YamlConfiguration.loadConfiguration(configFile);
-    }
 }

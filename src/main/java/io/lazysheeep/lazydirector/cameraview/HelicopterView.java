@@ -1,4 +1,4 @@
-package io.lazysheeep.lazydirector.camerashottype;
+package io.lazysheeep.lazydirector.cameraview;
 
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
@@ -7,23 +7,38 @@ import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.configurate.ConfigurationNode;
 
 public class HelicopterView extends CameraView
 {
-    private final float minEnginePower = 10.0f;
-    private final float maxEnginePower = 200.0f;
-    private final float minPowerDistance = 16.0f;
-    private final float maxPowerDistance = 64.0f;
-    private final float helicopterMass = 500.0f;
-    private final float fragFactor = 5.0f;
+    private final float minEnginePower;
+    private final float maxEnginePower;
+    private final float minPowerDistance;
+    private final float maxPowerDistance;
+    private final float helicopterMass;
+    private final float fragFactor;
+    private final float hoverHeight;
+    private final float hoverRadius;
 
-    private final float hoverHeight = 32.0f;
-    private final float hoverRadius = 16.0f;
-    private final double yawTolerance = Math.toRadians(2.0);
-    private final float heightTolerance = 2.0f;
+    private static final double yawTolerance = Math.toRadians(2.0);
+    private static final float heightTolerance = 2.0f;
 
     private Location helicopterLocation;
     private Vector helicopterVelocity;
+
+    public HelicopterView(@NotNull ConfigurationNode configNode)
+    {
+        minEnginePower = configNode.node("minEnginePower").getFloat(0.0f);
+        maxEnginePower = configNode.node("maxEnginePower").getFloat(0.0f);
+        minPowerDistance = configNode.node("minPowerDistance").getFloat(0.0f);
+        maxPowerDistance = configNode.node("maxPowerDistance").getFloat(0.0f);
+        helicopterMass = configNode.node("helicopterMass").getFloat(0.0f);
+        fragFactor = configNode.node("fragFactor").getFloat(0.0f);
+        hoverHeight = configNode.node("hoverHeight").getFloat(0.0f);
+        hoverRadius = configNode.node("hoverRadius").getFloat(0.0f);
+
+        reset();
+    }
 
     @Override
     public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
@@ -97,6 +112,6 @@ public class HelicopterView extends CameraView
     private void initHelicopter(@NotNull Hotspot focus)
     {
         helicopterLocation = focus.getLocation().clone().add(5.0, hoverHeight, 5.0);
-        helicopterVelocity = new Vector(0.0, 0.0, 0.2);
+        helicopterVelocity = new Vector(0.0, 0.0, 0.0);
     }
 }
