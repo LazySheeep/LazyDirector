@@ -55,7 +55,7 @@ task copyJar(type: Copy) {
 }
 
 task copyConfig(type: Copy) {
-    from file("$rootDir/src/main/resources/test.conf")
+    from file("$rootDir/src/main/resources/example.conf")
     into file("$rootDir/test/paper server 1.21/plugins/LazyDirector")
 }
 

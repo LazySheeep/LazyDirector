@@ -131,6 +131,12 @@ public class MathUtils
         origin.setDirection(new Vector(dx, dy, dz));
     }
 
+    public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Vector direction, double maxDistance)
+    {
+        return start.getWorld()
+                    .rayTraceBlocks(start, direction, maxDistance, FluidCollisionMode.NEVER, true);
+    }
+
     public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Location end)
     {
         return start.getWorld()

@@ -211,7 +211,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         if(!getDataFolder().exists())
         {
             getDataFolder().mkdir();
-            saveResource("test.conf", false);
+            saveResource("example.conf", false);
         }
         // activate
         if(FileUtils.getAllFileNames(getDataFolder().getPath()).contains("default.conf"))

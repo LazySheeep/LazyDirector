@@ -3,6 +3,7 @@ package io.lazysheeep.lazydirector.cameraview;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
+import io.lazysheeep.lazydirector.util.RandomUtils;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -17,8 +18,10 @@ public class HelicopterView extends CameraView
     private final float maxPowerDistance;
     private final float helicopterMass;
     private final float fragFactor;
-    private final float hoverHeight;
     private final float hoverRadius;
+    private final float hoverHeight;
+    private final float minDistanceToDownwardTerrain;
+    private final float minDistanceToUpwardTerrain;
 
     private static final double yawTolerance = Math.toRadians(2.0);
     private static final float heightTolerance = 2.0f;
@@ -34,8 +37,10 @@ public class HelicopterView extends CameraView
         maxPowerDistance = configNode.node("maxPowerDistance").getFloat(0.0f);
         helicopterMass = configNode.node("helicopterMass").getFloat(0.0f);
         fragFactor = configNode.node("fragFactor").getFloat(0.0f);
-        hoverHeight = configNode.node("hoverHeight").getFloat(0.0f);
         hoverRadius = configNode.node("hoverRadius").getFloat(0.0f);
+        hoverHeight = configNode.node("hoverHeight").getFloat(0.0f);
+        minDistanceToDownwardTerrain = configNode.node("minDistanceToDownwardTerrain").getFloat(0.0f);
+        minDistanceToUpwardTerrain = configNode.node("minDistanceToUpwardTerrain").getFloat(0.0f);
 
         reset();
     }
@@ -46,18 +51,19 @@ public class HelicopterView extends CameraView
         Location focusLocation = focus.getLocation();
         Location hoverLocation = focusLocation.clone().add(0.0, hoverHeight, 0.0);
 
-        if (helicopterLocation == null || helicopterVelocity == null || MathUtils.Distance(helicopterLocation, hoverLocation) > 256.0)
+        if (helicopterLocation == null || helicopterVelocity == null || MathUtils.Distance(helicopterLocation, hoverLocation) > 256.0 || !helicopterLocation.getBlock().getType().isAir())
         {
             initHelicopter(focus);
         }
 
         // calculate propeller force direction
         Vector f = hoverLocation.toVector().subtract(helicopterLocation.toVector()).setY(0.0);
+        double fLength = f.length();
         Vector fNorm = f.clone().normalize();
         Vector vNorm = helicopterVelocity.clone().setY(0.0).normalize();
         Vector propellerForceDirection;
 
-        double theta = Math.asin(hoverRadius / f.length());
+        double theta = Math.asin(hoverRadius / fLength);
         if(fNorm.angle(vNorm) > theta + yawTolerance)
         {
             propellerForceDirection = vNorm.rotateAroundY((Math.PI / 3.0) * (fNorm.getX() * vNorm.getZ() - fNorm.getZ() * vNorm.getX() > 0.0 ? 1.0 : -1.0));
@@ -71,18 +77,37 @@ public class HelicopterView extends CameraView
             propellerForceDirection = vNorm;
         }
 
+        boolean needGoUp = false;
+        boolean needGoDown = false;
         double deltaHeight = hoverLocation.getY() - helicopterLocation.getY();
-        if(deltaHeight > heightTolerance)
+        if(terrainCollision(helicopterLocation, -(int)minDistanceToDownwardTerrain))
+        {
+            needGoUp = true;
+        }
+        else if(deltaHeight < -heightTolerance)
+        {
+            needGoDown = true;
+        }
+        if(terrainCollision(helicopterLocation, (int)minDistanceToUpwardTerrain))
+        {
+            needGoDown = true;
+        }
+        else if(deltaHeight > heightTolerance)
+        {
+            needGoUp = true;
+        }
+
+        if(needGoUp && !needGoDown)
         {
             propellerForceDirection.setY(1.0).normalize();
         }
-        else if(deltaHeight < -heightTolerance)
+        else if(!needGoUp && needGoDown)
         {
             propellerForceDirection.setY(-1.0).normalize();
         }
 
         // calculate propeller force
-        float enginePower = MathUtils.Map((float)f.length(), minPowerDistance, maxPowerDistance, minEnginePower, maxEnginePower);
+        float enginePower = MathUtils.Map((float)fLength, minPowerDistance, maxPowerDistance, minEnginePower, maxEnginePower);
         enginePower = MathUtils.Clamp(enginePower, minEnginePower, maxEnginePower);
 
         double vc = Math.abs(helicopterVelocity.dot(propellerForceDirection));
@@ -111,7 +136,33 @@ public class HelicopterView extends CameraView
 
     private void initHelicopter(@NotNull Hotspot focus)
     {
-        helicopterLocation = focus.getLocation().clone().add(5.0, hoverHeight, 5.0);
-        helicopterVelocity = new Vector(0.0, 0.0, 0.0);
+        helicopterLocation = focus.getLocation().clone().add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
+        helicopterVelocity = new Vector(0.0, 0.0, 0.2);
+    }
+
+    private static boolean terrainCollision(@NotNull Location location, int rangeY)
+    {
+        Location loc = location.clone();
+        if(rangeY > 0)
+        {
+            for(int y = 0; y < rangeY; y++)
+            {
+                if(!loc.add(0.0, 1.0, 0.0).getBlock().getType().isAir())
+                {
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for(int y = 0; y > rangeY; y--)
+            {
+                if(!loc.add(0.0, -1.0, 0.0).getBlock().getType().isAir())
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
