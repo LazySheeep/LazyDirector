@@ -295,11 +295,12 @@ public class Cameraman
         List<Hotspot> candidateFocuses = getCandidateFocuses();
         if (!candidateFocuses.isEmpty())
         {
-            currentFocus = RandomUtils.PickOne(candidateFocuses);
-            if(currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
+            Hotspot newFocus = RandomUtils.PickOne(candidateFocuses);
+            if(currentFocus == null || newFocus.getClass() != currentFocus.getClass())
             {
                 currentCameraView = null;
             }
+            currentFocus = newFocus;
         }
         else
         {
