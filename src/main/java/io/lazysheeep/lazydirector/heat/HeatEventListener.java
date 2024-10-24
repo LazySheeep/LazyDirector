@@ -1,5 +1,6 @@
-package io.lazysheeep.lazydirector;
+package io.lazysheeep.lazydirector.heat;
 
+import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import org.bukkit.entity.Player;

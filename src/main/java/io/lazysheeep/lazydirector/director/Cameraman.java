@@ -44,7 +44,7 @@ public class Cameraman
     private final float candidateColdestRank;
 
     private final Map<Class<?>, List<Pair<CameraView, Float>>> candidateHotspotTypes = new HashMap<>();
-    private final CameraView defaultCameraView = new IsometricView(5.0f, 10.0f, 20, 3.0f);
+    private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, 20, 3.0f);
 
     public @NotNull String getName()
     {
@@ -287,10 +287,19 @@ public class Cameraman
      */
     private void switchFocus()
     {
+        if(currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
+        {
+            currentCameraView = null;
+        }
+
         List<Hotspot> candidateFocuses = getCandidateFocuses();
         if (!candidateFocuses.isEmpty())
         {
             currentFocus = RandomUtils.PickOne(candidateFocuses);
+            if(currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
+            {
+                currentCameraView = null;
+            }
         }
         else
         {

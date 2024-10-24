@@ -1,11 +1,11 @@
 package io.lazysheeep.lazydirector;
 
 import co.aikar.commands.PaperCommandManager;
-import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.lazysheeep.lazydirector.actor.ActorManager;
 import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.director.Director;
+import io.lazysheeep.lazydirector.heat.HeatEventListener;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
 import io.lazysheeep.lazydirector.util.FileUtils;
@@ -13,21 +13,16 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.logging.Level;
