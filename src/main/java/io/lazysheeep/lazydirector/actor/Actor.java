@@ -3,6 +3,7 @@ package io.lazysheeep.lazydirector.actor;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.ActorGroupHotspot;
 import io.lazysheeep.lazydirector.hotspot.ActorHotspot;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -215,4 +216,11 @@ public class Actor
     {
         return hostPlayer.getName();
     }
+
+    /**
+     * <p>
+     *     Properties related to heat events
+     * </p>
+     */
+    public Block lastInteractedBlock = null;
 }
