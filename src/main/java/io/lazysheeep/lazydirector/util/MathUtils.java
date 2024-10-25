@@ -92,25 +92,19 @@ public class MathUtils
         return result;
     }
 
+    public static float squareInterpolation(float start, float end, float t)
+    {
+        return (end - start) * t * t + start;
+    }
+
+    public static float squareMap(float value, float mapFromMin, float mapFromMax, float minMapTo, float maxMapTo)
+    {
+        return squareInterpolation(minMapTo, maxMapTo, (value - mapFromMin) / (mapFromMax - mapFromMin));
+    }
+
     public static double Distance(@NotNull Location start, @NotNull Location end)
     {
         return start.getWorld() == end.getWorld() ? start.distance(end) : Double.MAX_VALUE;
-    }
-
-    public static float UnitMapTo(float value, float minMapTo, float maxMapTo)
-    {
-        return minMapTo + (maxMapTo - minMapTo) * value;
-    }
-
-    public static float MapToUnit(float value, float mapFromMin, float mapFromMax)
-    {
-        return (value - mapFromMin) / (mapFromMax - mapFromMin);
-    }
-
-    public static float Map(float value, float mapFromMin, float mapFromMax, float minMapTo, float maxMapTo)
-    {
-        float unit = MapToUnit(value, mapFromMin, mapFromMax);
-        return UnitMapTo(unit, minMapTo, maxMapTo);
     }
 
     public static @NotNull Vector GetDirectionFromPitchAndYaw(double pitch, double yaw)

@@ -97,6 +97,6 @@ public class MonitorView extends CameraView
     public void reset()
     {
         cameraLocation = null;
-        badViewTimer = 0.0f;
+        badViewTimer = maxBadViewTime;
     }
 }

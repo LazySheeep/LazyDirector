@@ -44,7 +44,7 @@ public class Cameraman
     private final float candidateColdestRank;
 
     private final Map<Class<?>, List<Pair<CameraView, Float>>> candidateHotspotTypes = new HashMap<>();
-    private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, false, 3.0f, 20);
+    private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, 45.0, 45.0, false, 3.0f);
 
     public @NotNull String getName()
     {
@@ -267,7 +267,7 @@ public class Cameraman
             // BUG: MC-157812 (https://bugs.mojang.com/browse/MC-157812)
             if (!output.isChunkSent(camera.getChunk()) || MathUtils.Distance(output.getLocation(), camera.getLocation()) > 64.0d)
             {
-                LazyDirector.Log(Level.INFO, "Sending chunk to " + output.getName());
+                // LazyDirector.Log(Level.INFO, "Waiting for chunk to be sent to " + output.getName());
                 output.setGameMode(GameMode.SPECTATOR);
                 output.setSpectatorTarget(null);
                 output.teleport(camera.getLocation());
