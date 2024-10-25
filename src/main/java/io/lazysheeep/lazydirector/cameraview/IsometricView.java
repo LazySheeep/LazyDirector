@@ -15,8 +15,9 @@ public class IsometricView extends CameraView
 {
     private final float minDistance;
     private final float maxDistance;
-    private final int iterationsEachTry;
+    private final boolean enableVisibilityCheck;
     private final float maxBadViewTime;
+    private final int retriesWhenBadView;
 
     private double pitch;
     private double yaw;
@@ -27,17 +28,19 @@ public class IsometricView extends CameraView
     {
         minDistance = configNode.node("minDistance").getFloat(0.0f);
         maxDistance = configNode.node("maxDistance").getFloat(0.0f);
-        iterationsEachTry = configNode.node("iterationsEachTry").getInt(1);
+        enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
+        retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
 
         reset();
     }
 
-    public IsometricView(float minDistance, float maxDistance, int iterationsEachTry, float maxBadViewTime)
+    public IsometricView(float minDistance, float maxDistance, boolean enableVisibilityCheck, float maxBadViewTime, int retriesWhenBadView)
     {
         this.minDistance = minDistance;
         this.maxDistance = maxDistance;
-        this.iterationsEachTry = iterationsEachTry;
+        this.enableVisibilityCheck = enableVisibilityCheck;
+        this.retriesWhenBadView = retriesWhenBadView;
         this.maxBadViewTime = maxBadViewTime;
 
         reset();
@@ -54,7 +57,7 @@ public class IsometricView extends CameraView
     {
         Location nextCameraLocation = nextCameraLocation(focus);
         // check if the focus is visible from the camera
-        if(MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
+        if(!enableVisibilityCheck || MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
         {
             badViewTimer = 0.0f;
             distance = maxDistance;
@@ -67,11 +70,11 @@ public class IsometricView extends CameraView
                 boolean success = false;
                 int iteration = 0;
                 distance = maxDistance;
-                while (iteration < iterationsEachTry)
+                while (iteration < retriesWhenBadView)
                 {
                     pitch = RandomUtils.NextDouble(15.0d, 60.0d);
                     yaw = RandomUtils.NextDouble(-180.0d, 180.0d);
-                    distance -= (maxDistance - minDistance) / iterationsEachTry;
+                    distance -= (maxDistance - minDistance) / retriesWhenBadView;
                     nextCameraLocation = nextCameraLocation(focus);
                     if (MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
                     {

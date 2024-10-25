@@ -44,7 +44,7 @@ public class Cameraman
     private final float candidateColdestRank;
 
     private final Map<Class<?>, List<Pair<CameraView, Float>>> candidateHotspotTypes = new HashMap<>();
-    private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, 20, 3.0f);
+    private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, false, 3.0f, 20);
 
     public @NotNull String getName()
     {

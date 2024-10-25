@@ -14,8 +14,10 @@ public class MonitorView extends CameraView
 {
     private final float initDistance;
     private final float maxDistance;
-    private final int iterationsEachTry;
+    private final float criticalDistance;
+    private final boolean enableVisibilityCheck;
     private final float maxBadViewTime;
+    private final int retriesWhenBadView;
 
     private Location cameraLocation;
     private float badViewTimer;
@@ -23,10 +25,11 @@ public class MonitorView extends CameraView
     public MonitorView(@NotNull ConfigurationNode configNode)
     {
         initDistance = configNode.node("initDistance").getFloat(0.0f);
-        maxDistance = configNode.node("maxDistance").getFloat(0.0f);
-        iterationsEachTry = configNode.node("iterationsEachTry").getInt(1);
+        maxDistance = configNode.node("maxDistance").getFloat(Float.MAX_VALUE);
+        criticalDistance = configNode.node("criticalDistance").getFloat(Float.MAX_VALUE);
+        enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
-
+        retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
         reset();
     }
 
@@ -35,14 +38,16 @@ public class MonitorView extends CameraView
         double pitch = RandomUtils.NextDouble(-90.0d, 90.0d);
         double yaw = RandomUtils.NextDouble(-180.0d, 180.0d);
         Vector direction = MathUtils.GetDirectionFromPitchAndYaw(pitch, yaw);
-        cameraLocation = focus.getLocation().add(direction.clone().multiply(initDistance).multiply(-1.0f)).setDirection(direction);
+        cameraLocation = focus.getLocation()
+                              .add(direction.clone().multiply(initDistance).multiply(-1.0f))
+                              .setDirection(direction);
         return cameraLocation;
     }
 
     @Override
     public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
     {
-        if(cameraLocation == null)
+        if (cameraLocation == null)
         {
             newCameraLocation(focus);
         }
@@ -53,18 +58,19 @@ public class MonitorView extends CameraView
         }
 
         // check if the focus is not too far and visible from the camera
-        if(MathUtils.Distance(cameraLocation, focus.getLocation()) <= maxDistance && MathUtils.IsVisible(cameraLocation, focus.getLocation()))
+        double distance = MathUtils.Distance(cameraLocation, focus.getLocation());
+        if (distance <= maxDistance && (!enableVisibilityCheck || MathUtils.IsVisible(cameraLocation, focus.getLocation())))
         {
             badViewTimer = 0.0f;
         }
         else
         {
             badViewTimer += LazyDirector.GetServerTickDeltaTime();
-            if(badViewTimer > maxBadViewTime)
+            if (badViewTimer > maxBadViewTime || distance > criticalDistance)
             {
                 boolean success = false;
                 int iteration = 0;
-                while (iteration < iterationsEachTry)
+                while (iteration < retriesWhenBadView)
                 {
                     newCameraLocation(focus);
                     if (MathUtils.IsVisible(cameraLocation, focus.getLocation()))
@@ -75,13 +81,11 @@ public class MonitorView extends CameraView
                     }
                     iteration++;
                 }
-
                 // fail
-                if(!success)
+                if (!success)
                 {
                     cameraLocation = null;
                 }
-
                 badViewTimer = 0.0f;
             }
         }

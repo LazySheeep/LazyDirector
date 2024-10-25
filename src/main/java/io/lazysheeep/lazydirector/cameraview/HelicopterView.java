@@ -22,12 +22,16 @@ public class HelicopterView extends CameraView
     private final float hoverHeight;
     private final float minDistanceToDownwardTerrain;
     private final float minDistanceToUpwardTerrain;
+    private final boolean enableVisibilityCheck;
+    private final float maxBadViewTime;
+    private final int retriesWhenBadView;
 
     private static final double yawTolerance = Math.toRadians(2.0);
     private static final float heightTolerance = 2.0f;
 
     private Location helicopterLocation;
     private Vector helicopterVelocity;
+    private float badViewTimer;
 
     public HelicopterView(@NotNull ConfigurationNode configNode)
     {
@@ -41,7 +45,9 @@ public class HelicopterView extends CameraView
         hoverHeight = configNode.node("hoverHeight").getFloat(0.0f);
         minDistanceToDownwardTerrain = configNode.node("minDistanceToDownwardTerrain").getFloat(0.0f);
         minDistanceToUpwardTerrain = configNode.node("minDistanceToUpwardTerrain").getFloat(0.0f);
-
+        enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
+        maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
+        retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
         reset();
     }
 
@@ -54,6 +60,39 @@ public class HelicopterView extends CameraView
         if (helicopterLocation == null || helicopterVelocity == null || MathUtils.Distance(helicopterLocation, hoverLocation) > 256.0 || !helicopterLocation.getBlock().getType().isAir())
         {
             initHelicopter(focus);
+        }
+
+        // check if the focus is visible from the camera
+        if(!enableVisibilityCheck || MathUtils.IsVisible(helicopterLocation, focus.getLocation()))
+        {
+            badViewTimer = 0.0f;
+        }
+        else
+        {
+            badViewTimer += LazyDirector.GetServerTickDeltaTime();
+            if(badViewTimer > maxBadViewTime)
+            {
+                boolean success = false;
+                int iteration = 0;
+                while (iteration < retriesWhenBadView)
+                {
+                    initHelicopter(focus);
+                    if (MathUtils.IsVisible(helicopterLocation, focus.getLocation()))
+                    {
+                        // success
+                        success = true;
+                        break;
+                    }
+                    iteration++;
+                }
+                badViewTimer = 0.0f;
+                // fail
+                if(!success)
+                {
+                    helicopterLocation = null;
+                    return null;
+                }
+            }
         }
 
         // calculate propeller force direction
