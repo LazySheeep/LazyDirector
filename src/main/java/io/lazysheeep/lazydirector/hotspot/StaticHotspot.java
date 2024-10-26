@@ -19,10 +19,12 @@ public class StaticHotspot extends Hotspot
     {
         ConfigurationNode locationNode = configNode.node("location");
         World world = LazyDirector.GetPlugin().getServer().getWorld(locationNode.node("world").getString("no_value"));
-        float x = locationNode.node("x").getFloat(0.0f);
-        float y = locationNode.node("y").getFloat(0.0f);
-        float z = locationNode.node("z").getFloat(0.0f);
-        this.location = new Location(world, x, y, z);
+        double x = locationNode.node("x").getDouble(0.0);
+        double y = locationNode.node("y").getDouble(0.0);
+        double z = locationNode.node("z").getDouble(0.0);
+        float pitch = locationNode.node("pitch").getFloat(0.0f);
+        float yaw = locationNode.node("yaw").getFloat(0.0f);
+        this.location = new Location(world, x, y, z, yaw, pitch);
         float heat = configNode.node("heat").getFloat(0.0f);
         increase("static", heat);
     }

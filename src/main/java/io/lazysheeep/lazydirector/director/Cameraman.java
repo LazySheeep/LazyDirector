@@ -8,7 +8,6 @@ import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import io.lazysheeep.lazydirector.util.RandomUtils;
 import net.kyori.adventure.text.Component;
-import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
@@ -37,13 +36,13 @@ public class Cameraman
     private final float minFocusSwitchTime;
     private final float maxFocusSwitchTime;
 
-    private final float cameraViewSwitchTime;
-
     private final int candidateMaxCount;
     private final float candidateHottestRank;
     private final float candidateColdestRank;
 
-    private final Map<Class<?>, List<Pair<CameraView, Float>>> candidateHotspotTypes = new HashMap<>();
+    private record CameraViewWarp(CameraView cameraView, float weight, float switchTime) {}
+
+    private final Map<Class<?>, List<CameraViewWarp>> candidateHotspotTypes = new HashMap<>();
     private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, 45.0, 45.0, false, 3.0f);
 
     public @NotNull String getName()
@@ -70,7 +69,6 @@ public class Cameraman
         this.name = configNode.node("name").getString();
         this.minFocusSwitchTime = configNode.node("minFocusSwitchTime").getFloat(0.0f);
         this.maxFocusSwitchTime = configNode.node("maxFocusSwitchTime").getFloat(Float.MAX_VALUE);
-        this.cameraViewSwitchTime = configNode.node("cameraViewSwitchTime").getFloat(Float.MAX_VALUE);
 
         ConfigurationNode candidateFocusesNode = configNode.node("candidateFocuses");
         this.candidateMaxCount = candidateFocusesNode.node("maxCount").getInt(Integer.MAX_VALUE);
@@ -85,12 +83,13 @@ public class Cameraman
             {
                 Class<?> hotspotType = Class.forName("io.lazysheeep.lazydirector.hotspot." + hotspotTypeNode.node("type")
                                                                                                             .getString() + "Hotspot");
-                List<Pair<CameraView, Float>> cameraViews = new ArrayList<>();
+                List<CameraViewWarp> cameraViews = new ArrayList<>();
                 for (ConfigurationNode cameraViewNode : hotspotTypeNode.node("cameraViews").childrenList())
                 {
                     CameraView cameraView = CameraView.CreateCameraView(cameraViewNode.node("type"));
                     float weight = cameraViewNode.node("weight").getFloat(1.0f);
-                    cameraViews.add(Pair.of(cameraView, weight));
+                    float switchTime = cameraViewNode.node("switchTime").getFloat(Float.MAX_VALUE);
+                    cameraViews.add(new CameraViewWarp(cameraView, weight, switchTime));
                 }
                 candidateHotspotTypes.put(hotspotType, cameraViews);
             }
@@ -137,6 +136,7 @@ public class Cameraman
     private float focusTimer = 0.0f;
     private CameraView currentCameraView = null;
     private float cameraViewTimer = 0.0f;
+    private float cameraViewSwitchTime = Float.MAX_VALUE;
     private final List<Player> outputs = new LinkedList<>();
 
     /**
@@ -150,21 +150,28 @@ public class Cameraman
      */
     private static @Nullable Entity CreateCamera(@NotNull String name, @NotNull Location location)
     {
-        ArmorStand camera = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-        if (camera.isValid())
+        if(location.getChunk().isLoaded())
         {
-            camera.customName(Component.text(name));
-            camera.addScoreboardTag("LazyDirector.Cameraman.Camera");
-            camera.setMarker(true);
-            camera.setSmall(true);
-            camera.setInvisible(true);
-            LazyDirector.Log(Level.INFO, "Created camera " + name + " at " + location);
-            return camera;
+            ArmorStand camera = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+            if (camera.isValid())
+            {
+                camera.customName(Component.text(name));
+                camera.addScoreboardTag("LazyDirector.Cameraman.Camera");
+                camera.setMarker(true);
+                camera.setSmall(true);
+                camera.setInvisible(true);
+                LazyDirector.Log(Level.INFO, "Created camera " + name + " at " + location);
+                return camera;
+            }
+            else
+            {
+                camera.remove();
+                LazyDirector.Log(Level.WARNING, "Failed to create camera " + name + " at " + location);
+                return null;
+            }
         }
         else
         {
-            camera.remove();
-            LazyDirector.Log(Level.WARNING, "Failed to create camera " + name + " at " + location);
             return null;
         }
     }
@@ -210,15 +217,6 @@ public class Cameraman
      */
     public void update()
     {
-        // check camera
-        if (camera == null || !camera.isValid())
-        {
-            camera = CreateCamera("LazyDirector.Cameraman:" + name + ".Camera", LazyDirector.GetPlugin()
-                                                                                            .getHotspotManager()
-                                                                                            .getDefaultHotspot()
-                                                                                            .getLocation());
-        }
-
         // switch focus
         if (currentFocus == null || !currentFocus.isValid() || focusTimer > maxFocusSwitchTime || (focusTimer > minFocusSwitchTime && !getCandidateFocuses().contains(currentFocus)))
         {
@@ -238,44 +236,53 @@ public class Cameraman
         // call event
         new HotspotBeingFocusedEvent(currentFocus, this).callEvent();
 
-        // update camera location
-        Location nextCameraLocation = currentCameraView.updateCameraLocation(currentFocus);
-        if (nextCameraLocation == null)
+        if(!outputs.isEmpty())
         {
-            switchCameraView();
-        }
-        else
-        {
-            camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
-        }
-
-        // clear invalid outputs
-        outputs.removeIf(output -> !output.isOnline());
-
-        /*// switch cameraman for output players if they break away
-        for (Player player : outputs)
-        {
-            if (player.getSpectatorTarget() == null)
+            // check camera
+            if (camera == null || !camera.isValid())
             {
-                LazyDirector.GetPlugin().getDirector().switchCameraman(player, this);
+                camera = CreateCamera("LazyDirector.Cameraman:" + name + ".Camera", LazyDirector.GetPlugin()
+                                                                                                .getHotspotManager()
+                                                                                                .getDefaultHotspot()
+                                                                                                .getLocation());
+                if(camera == null)
+                {
+                    return;
+                }
             }
-        }*/
 
-        // update outputs
-        for (Player output : outputs)
-        {
-            // BUG: MC-157812 (https://bugs.mojang.com/browse/MC-157812)
-            if (!output.isChunkSent(camera.getChunk()) || MathUtils.Distance(output.getLocation(), camera.getLocation()) > 64.0d)
+            // update camera location
+            Location nextCameraLocation = currentCameraView.updateCameraLocation(currentFocus);
+            if (nextCameraLocation == null)
             {
-                // LazyDirector.Log(Level.INFO, "Waiting for chunk to be sent to " + output.getName());
-                output.setGameMode(GameMode.SPECTATOR);
-                output.setSpectatorTarget(null);
-                output.teleport(camera.getLocation());
+                switchCameraView();
             }
             else
             {
-                output.setGameMode(GameMode.SPECTATOR);
-                output.setSpectatorTarget(camera);
+                camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
+            }
+
+            // clear invalid outputs
+            outputs.removeIf(output -> !output.isOnline());
+
+            // update outputs
+            for (Player outputPlayer : outputs)
+            {
+                // BUG: MC-157812 (https://bugs.mojang.com/browse/MC-157812)
+                if (!outputPlayer.isChunkSent(camera.getChunk()) || MathUtils.Distance(outputPlayer.getLocation(), camera.getLocation()) > 64.0d)
+                {
+                    // LazyDirector.Log(Level.INFO, "Waiting for chunk to be sent to " + outputPlayer.getName());
+                    outputPlayer.setGameMode(GameMode.SPECTATOR);
+                    outputPlayer.setSpectatorTarget(null);
+                    outputPlayer.teleport(camera.getLocation());
+                }
+                else
+                {
+                    outputPlayer.setGameMode(GameMode.SPECTATOR);
+                    outputPlayer.setSpectatorTarget(camera);
+                }
+                // avoid being kicked by Essentials because of afk
+                outputPlayer.addAttachment(LazyDirector.GetPlugin(), 1200).setPermission("essentials.afk.kickexempt", true);
             }
         }
     }
@@ -287,7 +294,7 @@ public class Cameraman
      */
     private void switchFocus()
     {
-        if(currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
+        if (currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
         {
             currentCameraView = null;
         }
@@ -296,7 +303,7 @@ public class Cameraman
         if (!candidateFocuses.isEmpty())
         {
             Hotspot newFocus = RandomUtils.PickOne(candidateFocuses);
-            if(currentFocus == null || newFocus.getClass() != currentFocus.getClass())
+            if (currentFocus == null || newFocus.getClass() != currentFocus.getClass())
             {
                 currentCameraView = null;
             }
@@ -321,7 +328,7 @@ public class Cameraman
         List<Hotspot> sortedHotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
         sortedHotspots.removeIf(hotspot -> !candidateHotspotTypes.containsKey(hotspot.getClass()));
         int hottestCandidateIndex = (int) Math.floor(candidateHottestRank * sortedHotspots.size());
-        int coldestCandidateIndex = (int) Math.floor(candidateColdestRank * sortedHotspots.size());
+        int coldestCandidateIndex = (int) Math.ceil(candidateColdestRank * sortedHotspots.size());
         coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, hottestCandidateIndex + candidateMaxCount), sortedHotspots.size());
         List<Hotspot> candidateFocus = sortedHotspots.subList(hottestCandidateIndex, coldestCandidateIndex);
         // return the default hotspot if no candidate focus
@@ -341,22 +348,25 @@ public class Cameraman
         {
             currentCameraView.reset();
         }
-        if(currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
+        if (currentFocus == LazyDirector.GetPlugin().getHotspotManager().getDefaultHotspot())
         {
             currentCameraView = defaultCameraView;
         }
         else
         {
-            List<Pair<CameraView, Float>> candidateCameraViews = candidateHotspotTypes.get(currentFocus.getClass());
-            float totalWeight = (float) candidateCameraViews.stream().mapToDouble(Pair::getRight).sum();
+            List<CameraViewWarp> candidateCameraViews = candidateHotspotTypes.get(currentFocus.getClass());
+            float totalWeight = candidateCameraViews.stream()
+                                                    .map(cameraViewWarp -> cameraViewWarp.weight)
+                                                    .reduce(0.0f, Float::sum);
             float random = (float) (Math.random() * totalWeight);
             float sum = 0.0f;
-            for (Pair<CameraView, Float> pair : candidateCameraViews)
+            for (CameraViewWarp cameraViewWarp : candidateCameraViews)
             {
-                sum += pair.getRight();
-                if (random < sum)
+                sum += cameraViewWarp.weight;
+                if (random <= sum)
                 {
-                    currentCameraView = pair.getLeft();
+                    currentCameraView = cameraViewWarp.cameraView;
+                    cameraViewSwitchTime = cameraViewWarp.switchTime;
                     break;
                 }
             }
@@ -367,6 +377,6 @@ public class Cameraman
     @Override
     public String toString()
     {
-        return "{name=" + name + ",focus=" + currentFocus + ",focusTime=" + focusTimer + ",cameraShotType=" + currentCameraView + ",outputs=" + outputs + "}";
+        return "{name=" + name + ",focus=" + currentFocus + ",focusTime=" + focusTimer + ",cameraView=" + currentCameraView + "cameraViewSwitchTime=" + cameraViewSwitchTime + ",outputs=" + outputs + "}";
     }
 }

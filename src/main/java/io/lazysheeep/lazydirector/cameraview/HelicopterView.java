@@ -189,6 +189,7 @@ public class HelicopterView extends CameraView
     {
         helicopterLocation = null;
         helicopterVelocity = null;
+        badViewTimer = maxBadViewTime;
     }
 
     private void initHelicopter(@NotNull Hotspot focus)
