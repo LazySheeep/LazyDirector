@@ -74,18 +74,34 @@ public class ActorGroupHotspot extends Hotspot
     @Override
     protected void additionalUpdate()
     {
-        if(actors.isEmpty())
-        {
-            LazyDirector.GetPlugin().getHotspotManager().destroyHotspot(this);
-            return;
-        }
-        // remove actors that are too far away
+        // remove invalid actors
+        actors.removeIf(actor -> !actor.isValid());
+        // remove actors that are in different worlds
         for(Actor actor : actors)
         {
-            if(actor.getHostPlayer().getWorld() != world || MathUtils.Distance(actor.getHostPlayer().getLocation(), getLocation()) > 32.0d)
+            if(actor.getHostPlayer().getWorld() != world)
             {
                 actor.setActorGroupHotspot(null);
             }
+        }
+        actors.removeIf(actor -> actor.getActorGroupHotspot() != this);
+        // remove actors that are too far away
+        if(!actors.isEmpty())
+        {
+            Location location = getLocation();
+            for(Actor actor : actors)
+            {
+                if(MathUtils.Distance(actor.getHostPlayer().getLocation(), location) > 32.0d)
+                {
+                    actor.setActorGroupHotspot(null);
+                }
+            }
+            actors.removeIf(actor -> actor.getActorGroupHotspot() != this);
+        }
+        // destroy if no actors left
+        if(actors.isEmpty())
+        {
+            LazyDirector.GetPlugin().getHotspotManager().destroyHotspot(this);
         }
     }
 

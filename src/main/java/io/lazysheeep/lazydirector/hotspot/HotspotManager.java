@@ -226,11 +226,8 @@ public class HotspotManager
      */
     public void destroyHotspot(@NotNull Hotspot hotspot)
     {
-        if(hotspot.isValid())
-        {
-            LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
-            hotspot.destroy();
-        }
+        LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
+        hotspot.destroy();
     }
 
     /**

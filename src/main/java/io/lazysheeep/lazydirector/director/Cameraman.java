@@ -3,6 +3,7 @@ package io.lazysheeep.lazydirector.director;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.cameraview.IsometricView;
 import io.lazysheeep.lazydirector.cameraview.CameraView;
+import io.lazysheeep.lazydirector.cameraview.OverTheShoulderView;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
@@ -11,6 +12,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
@@ -43,7 +45,7 @@ public class Cameraman
     private record CameraViewWarp(CameraView cameraView, float weight, float switchTime) {}
 
     private final Map<Class<?>, List<CameraViewWarp>> candidateHotspotTypes = new HashMap<>();
-    private final CameraView defaultCameraView = new IsometricView(1.0f, 2.0f, 45.0, 45.0, false, 3.0f);
+    private final CameraView defaultCameraView = new OverTheShoulderView(new Vector(0.0, 0.0, -0.1));
 
     public @NotNull String getName()
     {
@@ -282,7 +284,10 @@ public class Cameraman
                     outputPlayer.setSpectatorTarget(camera);
                 }
                 // avoid being kicked by Essentials because of afk
-                outputPlayer.addAttachment(LazyDirector.GetPlugin(), 1200).setPermission("essentials.afk.kickexempt", true);
+                if(!outputPlayer.hasPermission("essentials.afk.kickexempt"))
+                {
+                    outputPlayer.addAttachment(LazyDirector.GetPlugin(), 1200).setPermission("essentials.afk.kickexempt", true);
+                }
             }
         }
     }

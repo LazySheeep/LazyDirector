@@ -99,15 +99,11 @@ public class Actor
 
     public void setActorGroupHotspot(@Nullable ActorGroupHotspot actorGroupHotspot)
     {
-        if(this.actorGroupHotspot != null)
-        {
-            this.actorGroupHotspot.removeActor(this);
-        }
-        this.actorGroupHotspot = actorGroupHotspot;
         if(actorGroupHotspot != null)
         {
             actorGroupHotspot.addActor(this);
         }
+        this.actorGroupHotspot = actorGroupHotspot;
     }
 
     /**

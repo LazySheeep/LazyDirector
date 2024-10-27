@@ -23,6 +23,11 @@ public class OverTheShoulderView extends CameraView
         reset();
     }
 
+    public OverTheShoulderView(@NotNull Vector position)
+    {
+        this.position = position;
+    }
+
     @Override
     public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
     {

@@ -189,7 +189,7 @@ public class HelicopterView extends CameraView
     {
         helicopterLocation = null;
         helicopterVelocity = null;
-        badViewTimer = maxBadViewTime;
+        badViewTimer = 0.0f;
     }
 
     private void initHelicopter(@NotNull Hotspot focus)
@@ -198,6 +198,7 @@ public class HelicopterView extends CameraView
                                   .clone()
                                   .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
         helicopterVelocity = new Vector(0.0, 0.0, 0.2);
+        badViewTimer = maxBadViewTime;
     }
 
     private static boolean terrainCollision(@NotNull Location location, int rangeY)
