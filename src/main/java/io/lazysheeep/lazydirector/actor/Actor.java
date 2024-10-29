@@ -162,11 +162,17 @@ public class Actor
      *     The shortcut for increasing the heat of the actor hotspot.
      * </p>
      * @param heatTypeName The name of the heat type
-     * @see ActorHotspot#increase(String)
+     * @return
+     * <p>
+     *     0 if the heat is increased successfully
+     *     <br/>
+     *     1 if the heat type is unknown
+     * </p>
+     * @see ActorHotspot#heat(String)
      */
-    public void increase(String heatTypeName)
+    public int heat(String heatTypeName)
     {
-        actorHotspot.increase(heatTypeName);
+        return actorHotspot.heat(heatTypeName);
     }
 
     /**
@@ -175,11 +181,17 @@ public class Actor
      * </p>
      * @param heatTypeName The name of the heat type
      * @param multiplier The multiplier to apply to the heat increment
-     * @see ActorHotspot#increase(String, float)
+     * @return
+     * <p>
+     *     0 if the heat is increased successfully
+     *     <br/>
+     *     1 if the heat type is unknown
+     * </p>
+     * @see ActorHotspot#heat(String, float)
      */
-    public final void increase(String heatTypeName, float multiplier)
+    public int heat(String heatTypeName, float multiplier)
     {
-        actorHotspot.increase(heatTypeName, multiplier);
+        return actorHotspot.heat(heatTypeName, multiplier);
     }
 
     /**
@@ -196,7 +208,7 @@ public class Actor
                 if(nearByActor != null)
                 {
                     LazyDirector.GetPlugin().getHotspotManager().joinActorGroupHotspot(this, nearByActor);
-                    actorHotspot.increase("player_group_gathering");
+                    actorHotspot.heat("player_group_gathering");
                 }
             }
         });

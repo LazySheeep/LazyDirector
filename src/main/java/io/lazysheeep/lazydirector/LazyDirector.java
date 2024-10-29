@@ -2,7 +2,10 @@ package io.lazysheeep.lazydirector;
 
 import co.aikar.commands.PaperCommandManager;
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
+import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.actor.ActorManager;
+import io.lazysheeep.lazydirector.command.LazyDirectorCommand;
+import io.lazysheeep.lazydirector.command.PlayerSelectorResolver;
 import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.director.Director;
 import io.lazysheeep.lazydirector.heat.HeatEventListener;
@@ -13,6 +16,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -58,7 +62,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * @param level The level of the log
      * @param message The message to log
      */
-    public static void Log(java.util.logging.Level level, String message)
+    public static void Log(Level level, String message)
     {
         if(level.intValue() >= Level.WARNING.intValue())
         {
@@ -201,6 +205,8 @@ public final class LazyDirector extends JavaPlugin implements Listener
         PaperCommandManager commandManager = new PaperCommandManager(this);
         commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath()));
         commandManager.getCommandCompletions().registerCompletion("cameramen", c -> getDirector().getAllCameramen().stream().map(Cameraman::getName).collect(Collectors.toList()));
+        commandManager.getCommandCompletions().registerCompletion("heatTypes", c -> HeatType.values().stream().map(HeatType::getName).collect(Collectors.toList()));
+        commandManager.getCommandContexts().registerContext(Player[].class, new PlayerSelectorResolver());
         commandManager.registerCommand(new LazyDirectorCommand());
         // if config folder does not exist, create it and copy the default config
         if(!getDataFolder().exists())
@@ -283,5 +289,65 @@ public final class LazyDirector extends JavaPlugin implements Listener
         actorManager.update();
         hotspotManager.update();
         director.update();
+    }
+
+    /**
+     * <p>
+     *     Heat a player.
+     * </p>
+     * @param player The player to heat
+     * @param heatType The name of the heat type
+     * @param multiplier The multiplier to apply to the heat increment
+     * @return
+     * <p>
+     *     0 if the actor is heated successfully
+     *     <br/>
+     *     1 if the heat type is unknown
+     *     <br/>
+     *     2 if the player is not an actor
+     *     <br/>
+     *     3 if the plugin is not activated
+     * </p>
+     */
+    public int heat(Player player, String heatType, float multiplier)
+    {
+        if(isActive())
+        {
+            Actor actor = getActorManager().getActor(player);
+            if(actor != null)
+            {
+                return actor.heat(heatType, multiplier);
+            }
+            else
+            {
+                return 2;
+            }
+        }
+        else
+        {
+            return 3;
+        }
+    }
+
+    /**
+     * <p>
+     *     Heat a player if it is an actor.
+     * </p>
+     * @param player The player to heat
+     * @param heatType The name of the heat type
+     * @return
+     * <p>
+     *     0 if the actor is heated successfully
+     *     <br/>
+     *     1 if the heat type is unknown
+     *     <br/>
+     *     2 if the player is not an actor
+     *     <br/>
+     *     3 if the plugin is not activated
+     * </p>
+     */
+    public int heat(Player player, String heatType)
+    {
+        return heat(player, heatType, 1.0f);
     }
 }

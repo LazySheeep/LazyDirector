@@ -51,7 +51,7 @@ public class Heat
      * </p>
      * @param multiplier The multiplier to apply to the heat increment
      */
-    public void increase(float multiplier)
+    public void heat(float multiplier)
     {
         value += type.getHeatEachIncrement() * multiplier;
         value = MathUtils.Clamp(value, 0.0f, type.getMaxHeat());

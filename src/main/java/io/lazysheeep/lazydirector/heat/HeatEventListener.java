@@ -19,7 +19,7 @@ public class HeatEventListener implements Listener
     @EventHandler(priority = EventPriority.MONITOR)
     public void onHotspotBeingFocused(HotspotBeingFocusedEvent event)
     {
-        event.getHotspot().increase("hunger");
+        event.getHotspot().heat("hunger");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -30,7 +30,7 @@ public class HeatEventListener implements Listener
         {
             if(event.hasChangedBlock())
             {
-                actor.increase("player_movement");
+                actor.heat("player_movement");
             }
         }
     }
@@ -43,7 +43,7 @@ public class HeatEventListener implements Listener
         {
             if(actor.lastInteractedBlock == null || actor.lastInteractedBlock.getLocation() != event.getBlock().getLocation())
             {
-                actor.increase("player_place_block");
+                actor.heat("player_place_block");
             }
             actor.lastInteractedBlock = event.getBlock();
         }
@@ -57,7 +57,7 @@ public class HeatEventListener implements Listener
         {
             if(actor.lastInteractedBlock == null || actor.lastInteractedBlock.getLocation() != event.getBlock().getLocation())
             {
-                actor.increase("player_break_block");
+                actor.heat("player_break_block");
             }
             actor.lastInteractedBlock = event.getBlock();
         }
@@ -81,17 +81,17 @@ public class HeatEventListener implements Listener
             {
                 if(victim instanceof Player victimPlayer)
                 {
-                    damagerActor.increase("player_attack_player", damage);
+                    damagerActor.heat("player_attack_player", damage);
 
                     Actor victimActor = LazyDirector.GetPlugin().getActorManager().getActor(victimPlayer);
                     if(victimActor != null)
                     {
-                        victimActor.increase("player_attacked_by_player", damage);
+                        victimActor.heat("player_attacked_by_player", damage);
                     }
                 }
                 else
                 {
-                    damagerActor.increase("player_attack_entity", damage);
+                    damagerActor.heat("player_attack_entity", damage);
                 }
             }
         }
@@ -102,7 +102,7 @@ public class HeatEventListener implements Listener
                 Actor victimActor = LazyDirector.GetPlugin().getActorManager().getActor(victimPlayer);
                 if(victimActor != null)
                 {
-                    victimActor.increase("player_attacked_by_entity", damage);
+                    victimActor.heat("player_attacked_by_entity", damage);
                 }
             }
         }
@@ -123,11 +123,11 @@ public class HeatEventListener implements Listener
         {
             if(victim instanceof Player)
             {
-                killerActor.increase("player_kill_player");
+                killerActor.heat("player_kill_player");
             }
             else
             {
-                killerActor.increase("player_kill_entity");
+                killerActor.heat("player_kill_entity");
             }
         }
     }

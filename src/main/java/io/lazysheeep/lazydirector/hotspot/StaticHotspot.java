@@ -12,7 +12,7 @@ public class StaticHotspot extends Hotspot
     StaticHotspot(Location location, float heat)
     {
         this.location = location;
-        increase("static", heat);
+        heat("static", heat);
     }
 
     StaticHotspot(ConfigurationNode configNode)
@@ -26,7 +26,7 @@ public class StaticHotspot extends Hotspot
         float yaw = locationNode.node("yaw").getFloat(0.0f);
         this.location = new Location(world, x, y, z, yaw, pitch);
         float heat = configNode.node("heat").getFloat(0.0f);
-        increase("static", heat);
+        heat("static", heat);
     }
 
     @Override

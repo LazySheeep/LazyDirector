@@ -25,7 +25,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
 {
     Hotspot()
     {
-        increase("hunger");
+        heat("hunger");
     }
 
     /**
@@ -112,10 +112,16 @@ public abstract class Hotspot implements Comparable<Hotspot>
      *     Increase the heat with the specified heat type.
      * </p>
      * @param heatTypeName The name of the heat type
+     * @return
+     * <p>
+     *     0 if the heat is increased successfully
+     *     <br/>
+     *     1 if the heat type is unknown
+     * </p>
      */
-    public final void increase(String heatTypeName)
+    public final int heat(String heatTypeName)
     {
-        increase(heatTypeName, 1.0f);
+        return heat(heatTypeName, 1.0f);
     }
 
     /**
@@ -124,29 +130,36 @@ public abstract class Hotspot implements Comparable<Hotspot>
      * </p>
      * @param heatTypeName The name of the heat type
      * @param multiplier The multiplier to apply to the heat increment
+     * @return
+     * <p>
+     *     0 if the heat is increased successfully
+     *     <br/>
+     *     1 if the heat type is unknown
+     * </p>
      */
-    public final void increase(String heatTypeName, float multiplier)
+    public final int heat(String heatTypeName, float multiplier)
     {
         // Get the heat type
         HeatType type = HeatType.valueOf(heatTypeName);
         if(type == null)
         {
             LazyDirector.Log(Level.WARNING, "Unknown heat type: " + heatTypeName);
-            return;
+            return 1;
         }
         // Increase the heat of the specified type
         for(Heat heat : heats)
         {
             if(heat.getType().equals(type))
             {
-                heat.increase(multiplier);
-                return;
+                heat.heat(multiplier);
+                return 0;
             }
         }
         // If not exists, create a new heat of the specified type and increase it
         Heat heat = new Heat(type);
         heats.add(heat);
-        heat.increase(multiplier);
+        heat.heat(multiplier);
+        return 0;
     }
 
     /**

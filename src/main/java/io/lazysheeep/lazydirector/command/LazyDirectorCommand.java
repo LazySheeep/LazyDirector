@@ -1,7 +1,8 @@
-package io.lazysheeep.lazydirector;
+package io.lazysheeep.lazydirector.command;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
+import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
@@ -149,6 +150,40 @@ public class LazyDirectorCommand extends BaseCommand
 
             List<Hotspot> hotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
             sender.sendMessage("Total " + hotspots.size() + " Hotspots:\n" + hotspots);
+        }
+    }
+
+    @Subcommand("heat")
+    @Description("Increase the heat of player")
+    @CommandCompletion("@players @heatTypes")
+    public void onHeat(CommandSender sender, Player[] playerSelector, String heatType)
+    {
+        if(!LazyDirector.GetPlugin().isActive())
+        {
+            sender.sendMessage("LazyDirector is not activated.");
+            return;
+        }
+
+        if(playerSelector.length == 0)
+        {
+            sender.sendMessage("No player found.");
+            return;
+        }
+
+        for(Player player : playerSelector)
+        {
+            switch (LazyDirector.GetPlugin().heat(player, heatType))
+            {
+                case 0:
+                    sender.sendMessage("Heated " + player.getName());
+                    break;
+                case 1:
+                    sender.sendMessage("Heat type " + heatType + " not found.");
+                    break;
+                case 2:
+                    sender.sendMessage("Player " + player.getName() + " is not an actor.");
+                    break;
+            }
         }
     }
 }

@@ -44,6 +44,17 @@ public class HeatType
 
     /**
      * <p>
+     *     Get all heat types.
+     * </p>
+     * @return All heat types
+     */
+    public static @NotNull List<HeatType> values()
+    {
+        return Collections.unmodifiableList(VALUES);
+    }
+
+    /**
+     * <p>
      *     Register a heat type.
      * </p>
      * @param name The name of the heat type
@@ -75,7 +86,9 @@ public class HeatType
     public static void LoadConfig(ConfigurationNode configNode) throws ConfigurateException
     {
         VALUES.clear();
-        for (ConfigurationNode heatTypeNode : configNode.node("basic").childrenList())
+        List<ConfigurationNode> heatTypeNodes = new ArrayList<>(configNode.node("basic").childrenList());
+        heatTypeNodes.addAll(configNode.node("custom").childrenList());
+        for (ConfigurationNode heatTypeNode : heatTypeNodes)
         {
             String name = heatTypeNode.node("name").getString();
             if(name == null)
