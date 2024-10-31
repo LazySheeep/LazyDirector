@@ -1,7 +1,8 @@
 package io.lazysheeep.lazydirector.director;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import io.lazysheeep.lazydirector.LazyDirector;
-import io.lazysheeep.lazydirector.cameraview.IsometricView;
 import io.lazysheeep.lazydirector.cameraview.CameraView;
 import io.lazysheeep.lazydirector.cameraview.OverTheShoulderView;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
@@ -9,9 +10,13 @@ import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import io.lazysheeep.lazydirector.util.RandomUtils;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.*;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,15 +39,16 @@ import java.util.logging.Level;
 public class Cameraman
 {
     private final String name;
-
+    private final boolean cameraIsVisible;
     private final float minFocusSwitchTime;
     private final float maxFocusSwitchTime;
-
     private final int candidateMaxCount;
     private final float candidateHottestRank;
     private final float candidateColdestRank;
 
-    private record CameraViewWarp(CameraView cameraView, float weight, float switchTime) {}
+    private record CameraViewWarp(CameraView cameraView, float weight, float switchTime)
+    {
+    }
 
     private final Map<Class<?>, List<CameraViewWarp>> candidateHotspotTypes = new HashMap<>();
     private final CameraView defaultCameraView = new OverTheShoulderView(new Vector(0.0, 0.0, -0.1));
@@ -69,6 +75,7 @@ public class Cameraman
     Cameraman(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
         this.name = configNode.node("name").getString();
+        this.cameraIsVisible = configNode.node("visible").getBoolean(false);
         this.minFocusSwitchTime = configNode.node("minFocusSwitchTime").getFloat(0.0f);
         this.maxFocusSwitchTime = configNode.node("maxFocusSwitchTime").getFloat(Float.MAX_VALUE);
 
@@ -141,6 +148,11 @@ public class Cameraman
     private float cameraViewSwitchTime = Float.MAX_VALUE;
     private final List<Player> outputs = new LinkedList<>();
 
+    public List<Player> getOutputs()
+    {
+        return Collections.unmodifiableList(outputs);
+    }
+
     /**
      * <p>
      * Create a camera entity.
@@ -150,24 +162,31 @@ public class Cameraman
      * @param location The initial location of the camera entity
      * @return The created camera entity
      */
-    private static @Nullable Entity CreateCamera(@NotNull String name, @NotNull Location location)
+    private static @Nullable Entity CreateCamera(@NotNull String name, @NotNull Location location, boolean visible)
     {
-        if(location.getChunk().isLoaded())
+        if (location.getChunk().isLoaded())
         {
-            ArmorStand camera = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
-            if (camera.isValid())
+            ItemDisplay newCamera = (ItemDisplay) location.getWorld().spawnEntity(location, EntityType.ITEM_DISPLAY);
+            if (newCamera.isValid())
             {
-                camera.customName(Component.text(name));
-                camera.addScoreboardTag("LazyDirector.Cameraman.Camera");
-                camera.setMarker(true);
-                camera.setSmall(true);
-                camera.setInvisible(true);
+                newCamera.customName(Component.text(name));
+                newCamera.addScoreboardTag("LazyDirector.Cameraman.Camera");
+                if(visible)
+                {
+                    PlayerProfile headProfile = Bukkit.createProfile(UUID.randomUUID());
+                    headProfile.setProperty(new ProfileProperty("textures", "e3RleHR1cmVzOntTS0lOOnt1cmw6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDc5OWJhMjI3ZjFmMjViMjg3ZjdkNzgxNGU1MjY0ZGNlMmNkNjk5ZTVkMWViZjU2MmY1ZWVkOTBiMDU4MTlhOCJ9fX0="));
+                    ItemStack cameraHead = new ItemStack(Material.PLAYER_HEAD);
+                    cameraHead.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(headProfile));
+                    newCamera.setItemStack(cameraHead);
+                    newCamera.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+                }
+                newCamera.setTeleportDuration(4);
                 LazyDirector.Log(Level.INFO, "Created camera " + name + " at " + location);
-                return camera;
+                return newCamera;
             }
             else
             {
-                camera.remove();
+                newCamera.remove();
                 LazyDirector.Log(Level.WARNING, "Failed to create camera " + name + " at " + location);
                 return null;
             }
@@ -238,7 +257,7 @@ public class Cameraman
         // call event
         new HotspotBeingFocusedEvent(currentFocus, this).callEvent();
 
-        if(!outputs.isEmpty())
+        if (!outputs.isEmpty())
         {
             // check camera
             if (camera == null || !camera.isValid())
@@ -246,8 +265,8 @@ public class Cameraman
                 camera = CreateCamera("LazyDirector.Cameraman:" + name + ".Camera", LazyDirector.GetPlugin()
                                                                                                 .getHotspotManager()
                                                                                                 .getDefaultHotspot()
-                                                                                                .getLocation());
-                if(camera == null)
+                                                                                                .getLocation(), cameraIsVisible);
+                if (camera == null)
                 {
                     return;
                 }
@@ -284,9 +303,10 @@ public class Cameraman
                     outputPlayer.setSpectatorTarget(camera);
                 }
                 // avoid being kicked by Essentials because of afk
-                if(!outputPlayer.hasPermission("essentials.afk.kickexempt"))
+                if (!outputPlayer.hasPermission("essentials.afk.kickexempt"))
                 {
-                    outputPlayer.addAttachment(LazyDirector.GetPlugin(), 1200).setPermission("essentials.afk.kickexempt", true);
+                    outputPlayer.addAttachment(LazyDirector.GetPlugin(), 1200)
+                                .setPermission("essentials.afk.kickexempt", true);
                 }
             }
         }

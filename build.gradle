@@ -15,6 +15,7 @@ repositories {
     maven { url = "https://repo.papermc.io/repository/maven-public/" }
     maven { url = "https://oss.sonatype.org/content/groups/public/" }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
+    maven { url = "https://jitpack.io"}
 }
 
 compileJava {
@@ -26,11 +27,15 @@ dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT"
     implementation "org.spongepowered:configurate-hocon:4.1.2"
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
+    implementation 'com.github.LazySheeep:LazuliUI:0.5.3'
 }
 
 shadowJar {
     relocate 'co.aikar.commands', 'io.lazysheeep.lazydirector.acf'
     relocate 'co.aikar.locales', 'io.lazysheeep.lazydirector.locales'
+    dependencies {
+        exclude(dependency('com.github.LazySheeep:LazuliUI'))
+    }
     mergeServiceFiles()
 }
 

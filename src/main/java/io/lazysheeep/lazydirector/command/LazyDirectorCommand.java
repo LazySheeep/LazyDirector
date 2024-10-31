@@ -6,8 +6,10 @@ import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 
 import java.util.List;
 
@@ -184,6 +186,45 @@ public class LazyDirectorCommand extends BaseCommand
                     sender.sendMessage("Player " + player.getName() + " is not an actor.");
                     break;
             }
+        }
+    }
+
+    @Subcommand("chatRepeater")
+    @Description("Manage chat repeater")
+    public class ChatRepeaterCommand extends BaseCommand
+    {
+        @Subcommand("enable")
+        @Description("Enable chat repeater")
+        public void onEnable(CommandSender sender)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
+            if(!Bukkit.getPluginManager().isPluginEnabled("LazuliUI"))
+            {
+                sender.sendMessage("This feature need plugin LazuliUI enabled.");
+                return;
+            }
+
+            Bukkit.getPluginManager().registerEvents(LazyDirector.GetPlugin().getChatRepeater(), LazyDirector.GetPlugin());
+            sender.sendMessage("Chat repeater enabled.");
+        }
+
+        @Subcommand("disable")
+        @Description("Disable chat repeater")
+        public void onDisable(CommandSender sender)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
+            HandlerList.unregisterAll(LazyDirector.GetPlugin().getChatRepeater());
+            sender.sendMessage("Chat repeater disabled.");
         }
     }
 }

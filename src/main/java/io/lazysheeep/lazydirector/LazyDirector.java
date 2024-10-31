@@ -8,6 +8,7 @@ import io.lazysheeep.lazydirector.command.LazyDirectorCommand;
 import io.lazysheeep.lazydirector.command.PlayerSelectorResolver;
 import io.lazysheeep.lazydirector.director.Cameraman;
 import io.lazysheeep.lazydirector.director.Director;
+import io.lazysheeep.lazydirector.feature.ChatRepeater;
 import io.lazysheeep.lazydirector.heat.HeatEventListener;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
@@ -131,6 +132,13 @@ public final class LazyDirector extends JavaPlugin implements Listener
     }
 
     private final HeatEventListener heatEventListener = new HeatEventListener();
+
+    private final ChatRepeater chatRepeater = new ChatRepeater();
+
+    public ChatRepeater getChatRepeater()
+    {
+        return chatRepeater;
+    }
 
     private boolean isActive = false;
 
