@@ -65,11 +65,6 @@ public final class LazyDirector extends JavaPlugin implements Listener
      */
     public static void Log(Level level, String message)
     {
-        if(level.intValue() >= Level.WARNING.intValue())
-        {
-            TextColor textColor = level == Level.SEVERE ? NamedTextColor.RED : NamedTextColor.YELLOW;
-            instance.getServer().broadcast(Component.text(message).color(textColor), "bukkit.broadcast.admin");
-        }
         instance.getLogger().log(level, "[t" + instance.getServer().getCurrentTick() + "] " + message);
     }
 
@@ -87,7 +82,6 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * The director instance.
      */
     private final Director director = new Director();
-
     /**
      * <p>
      *     Get the director instance.
@@ -103,7 +97,6 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * The actor manager instance.
      */
     private final ActorManager actorManager = new ActorManager();
-
     /**
      * <p>
      *     Get the actor manager instance.
@@ -119,7 +112,6 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * The hotspot manager instance.
      */
     private final HotspotManager hotspotManager = new HotspotManager();
-
     /**
      * <p>
      *     Get the hotspot manager instance.
@@ -134,14 +126,12 @@ public final class LazyDirector extends JavaPlugin implements Listener
     private final HeatEventListener heatEventListener = new HeatEventListener();
 
     private final ChatRepeater chatRepeater = new ChatRepeater();
-
     public ChatRepeater getChatRepeater()
     {
         return chatRepeater;
     }
 
     private boolean isActive = false;
-
     public boolean isActive()
     {
         return isActive;
@@ -149,7 +139,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
 
     /**
      * <p>
-     *     Active the plugin.
+     *     Activate the plugin.
      * </p>
      * <p>
      *     Load the configurations and register events.
