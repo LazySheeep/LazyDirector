@@ -203,12 +203,6 @@ public class LazyDirectorCommand extends BaseCommand
                 return;
             }
 
-            if(!Bukkit.getPluginManager().isPluginEnabled("LazuliUI"))
-            {
-                sender.sendMessage("This feature need plugin LazuliUI enabled.");
-                return;
-            }
-
             Bukkit.getPluginManager().registerEvents(LazyDirector.GetPlugin().getChatRepeater(), LazyDirector.GetPlugin());
             sender.sendMessage("Chat repeater enabled.");
         }

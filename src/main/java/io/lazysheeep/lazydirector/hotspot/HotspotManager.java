@@ -55,7 +55,7 @@ public class HotspotManager
     {
         for(Hotspot hotspot : hotspots)
         {
-            destroyHotspot(hotspot);
+            delayedDestroyHotspot(hotspot);
         }
         hotspots.clear();
         if(defaultHotspot != null)
@@ -225,6 +225,13 @@ public class HotspotManager
      * @param hotspot The hotspot to destroy
      */
     public void destroyHotspot(@NotNull Hotspot hotspot)
+    {
+        LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
+        hotspot.destroy();
+        hotspots.remove(hotspot);
+    }
+
+    public void delayedDestroyHotspot(@NotNull Hotspot hotspot)
     {
         LazyDirector.Log(Level.INFO, "Destroying hotspot: " + hotspot);
         hotspot.destroy();

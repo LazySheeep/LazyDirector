@@ -222,7 +222,7 @@ public class Actor
     @Override
     public String toString()
     {
-        return hostPlayer.getName();
+        return hostPlayer != null ? hostPlayer.getName() : null;
     }
 
     /**
