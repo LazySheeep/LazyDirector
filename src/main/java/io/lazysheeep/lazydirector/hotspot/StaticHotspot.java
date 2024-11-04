@@ -30,6 +30,12 @@ public class StaticHotspot extends Hotspot
     }
 
     @Override
+    public float getHeat()
+    {
+        return getHeat("static");
+    }
+
+    @Override
     protected void additionalDestroy()
     {
         location = null;
@@ -56,6 +62,6 @@ public class StaticHotspot extends Hotspot
     @Override
     protected String additionalToString()
     {
-        return "location=" + location;
+        return "Location: " + location;
     }
 }

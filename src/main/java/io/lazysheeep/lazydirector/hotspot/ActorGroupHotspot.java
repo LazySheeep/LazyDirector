@@ -17,7 +17,13 @@ import java.util.logging.Level;
 public class ActorGroupHotspot extends Hotspot
 {
     private List<Actor> actors = new LinkedList<>();
-    private World world = null;
+    private final World world;
+
+    ActorGroupHotspot(Actor initActor)
+    {
+        actors.add(initActor);
+        world = initActor.getHostPlayer().getWorld();
+    }
 
     public List<Actor> getActors()
     {
@@ -29,10 +35,6 @@ public class ActorGroupHotspot extends Hotspot
         if(!actors.contains(actor))
         {
             actors.add(actor);
-            if(world == null)
-            {
-                world = actor.getHostPlayer().getWorld();
-            }
         }
     }
 
@@ -40,8 +42,6 @@ public class ActorGroupHotspot extends Hotspot
     {
         actors.remove(actor);
     }
-
-    ActorGroupHotspot() {}
 
     @Override
     public float getHeat()
@@ -52,6 +52,28 @@ public class ActorGroupHotspot extends Hotspot
             maxHeat = Math.max(maxHeat, actor.getActorHotspot().getHeat());
         }
         return maxHeat + 1.0f;
+    }
+
+    @Override
+    public int heat(String heatTypeName)
+    {
+        int ret = 0;
+        for(Actor actor : actors)
+        {
+            ret = actor.heat(heatTypeName);
+        }
+        return ret;
+    }
+
+    @Override
+    public int heat(String heatTypeName, float multiplier)
+    {
+        int ret = 0;
+        for(Actor actor : actors)
+        {
+            ret = actor.heat(heatTypeName, multiplier);
+        }
+        return ret;
     }
 
     @Override
@@ -119,6 +141,9 @@ public class ActorGroupHotspot extends Hotspot
     @Override
     protected String additionalToString()
     {
-        return "actors=" + actors;
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Actors:");
+        actors.forEach(actor -> stringBuilder.append(" ").append(actor));
+        return stringBuilder.toString();
     }
 }

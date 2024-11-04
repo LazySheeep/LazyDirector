@@ -73,8 +73,11 @@ public class LazyDirectorCommand extends BaseCommand
                 return;
             }
 
+            StringBuilder stringBuilder = new StringBuilder();
             List<Actor> actors = LazyDirector.GetPlugin().getActorManager().getAllActors();
-            sender.sendMessage("Total " + actors.size() + " Actors:\n" + actors);
+            stringBuilder.append("Total ").append(actors.size()).append(" Actors:\n");
+            actors.forEach(actor -> stringBuilder.append(actor).append(" "));
+            sender.sendMessage(stringBuilder.toString());
         }
     }
 
@@ -132,8 +135,11 @@ public class LazyDirectorCommand extends BaseCommand
                 return;
             }
 
-            List<Cameraman> cameras = LazyDirector.GetPlugin().getDirector().getAllCameramen();
-            sender.sendMessage("Total " + cameras.size() + " Cameras:\n" + cameras);
+            StringBuilder stringBuilder = new StringBuilder();
+            List<Cameraman> cameramen = LazyDirector.GetPlugin().getDirector().getAllCameramen();
+            stringBuilder.append("Total ").append(cameramen.size()).append(" Cameramen:");
+            cameramen.forEach(cameraman -> stringBuilder.append("\n").append(cameraman));
+            sender.sendMessage(stringBuilder.toString());
         }
     }
 
@@ -150,8 +156,11 @@ public class LazyDirectorCommand extends BaseCommand
                 return;
             }
 
+            StringBuilder stringBuilder = new StringBuilder();
             List<Hotspot> hotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
-            sender.sendMessage("Total " + hotspots.size() + " Hotspots:\n" + hotspots);
+            stringBuilder.append("Total ").append(hotspots.size()).append(" Hotspots:\n");
+            hotspots.forEach(hotspot -> stringBuilder.append(hotspot).append("\n"));
+            sender.sendMessage(stringBuilder.toString());
         }
     }
 

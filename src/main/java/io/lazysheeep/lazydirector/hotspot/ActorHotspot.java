@@ -10,6 +10,7 @@ public class ActorHotspot extends Hotspot
     ActorHotspot(Actor actor)
     {
         this.actor = actor;
+        heat("hunger");
     }
 
     @Override
@@ -39,7 +40,7 @@ public class ActorHotspot extends Hotspot
     @Override
     public String additionalToString()
     {
-        return "actor=" + actor;
+        return "Actor: " + actor;
     }
 
 }

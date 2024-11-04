@@ -37,4 +37,11 @@ public abstract class CameraView
     public abstract @Nullable Location updateCameraLocation(@NotNull Hotspot focus);
 
     public abstract void reset();
+
+    @Override
+    public String toString()
+    {
+        var className = this.getClass().toString().split("\\.");
+        return className[className.length - 1];
+    }
 }

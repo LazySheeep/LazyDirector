@@ -89,7 +89,7 @@ public class Heat
     @Override
     public String toString()
     {
-        return "{type=" + type + ",value=" + value + "}";
+        return type + ": " + value;
     }
 }
 

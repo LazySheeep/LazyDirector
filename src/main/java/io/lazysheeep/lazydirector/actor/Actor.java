@@ -99,10 +99,6 @@ public class Actor
 
     public void setActorGroupHotspot(@Nullable ActorGroupHotspot actorGroupHotspot)
     {
-        if(actorGroupHotspot != null)
-        {
-            actorGroupHotspot.addActor(this);
-        }
         this.actorGroupHotspot = actorGroupHotspot;
     }
 
@@ -138,7 +134,8 @@ public class Actor
         actorHotspot = null;
         if(actorGroupHotspot != null)
         {
-            setActorGroupHotspot(null);
+            actorGroupHotspot.removeActor(this);
+            actorGroupHotspot = null;
         }
         hostPlayer = null;
     }
@@ -201,6 +198,7 @@ public class Actor
      */
     void update()
     {
+        // group gathering hotspot
         hostPlayer.getWorld().getNearbyPlayers(hostPlayer.getLocation(), 8.0f).forEach(nearByPlayer -> {
             if(nearByPlayer != hostPlayer)
             {
@@ -208,14 +206,14 @@ public class Actor
                 if(nearByActor != null)
                 {
                     LazyDirector.GetPlugin().getHotspotManager().joinActorGroupHotspot(this, nearByActor);
-                    actorHotspot.heat("player_group_gathering");
+                    heat("player_group_gathering");
                 }
             }
         });
-
-        if(actorHotspot.getHeat("player_group_gathering") <= 0.0f)
+        if(actorGroupHotspot != null && actorHotspot.getHeat("player_group_gathering") <= 0.0f)
         {
-            setActorGroupHotspot(null);
+            actorGroupHotspot.removeActor(this);
+            actorGroupHotspot = null;
         }
     }
 

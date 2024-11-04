@@ -402,6 +402,14 @@ public class Cameraman
     @Override
     public String toString()
     {
-        return "{name=" + name + ",focus=" + currentFocus + ",focusTime=" + focusTimer + ",cameraView=" + currentCameraView + "cameraViewSwitchTime=" + cameraViewSwitchTime + ",outputs=" + outputs + "}";
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("[").append(name).append("]\n");
+        stringBuilder.append("  Focus: ").append(currentFocus).append("\n");
+        stringBuilder.append("  Focus Timer: ").append(focusTimer).append("\n");
+        stringBuilder.append("  Camera View: ").append(currentCameraView).append("\n");
+        stringBuilder.append("  Camera View Timer: ").append(cameraViewTimer).append("\n");
+        stringBuilder.append("  Outputs:");
+        outputs.forEach(output -> stringBuilder.append(" ").append(output.getName()));
+        return stringBuilder.toString();
     }
 }

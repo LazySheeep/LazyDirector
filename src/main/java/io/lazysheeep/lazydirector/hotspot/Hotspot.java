@@ -23,10 +23,7 @@ import java.util.logging.Level;
  */
 public abstract class Hotspot implements Comparable<Hotspot>
 {
-    Hotspot()
-    {
-        heat("hunger");
-    }
+    Hotspot() {}
 
     /**
      * Destroy the hotspot.
@@ -119,7 +116,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
      *     1 if the heat type is unknown
      * </p>
      */
-    public final int heat(String heatTypeName)
+    public int heat(String heatTypeName)
     {
         return heat(heatTypeName, 1.0f);
     }
@@ -137,7 +134,7 @@ public abstract class Hotspot implements Comparable<Hotspot>
      *     1 if the heat type is unknown
      * </p>
      */
-    public final int heat(String heatTypeName, float multiplier)
+    public int heat(String heatTypeName, float multiplier)
     {
         // Get the heat type
         HeatType type = HeatType.valueOf(heatTypeName);
@@ -178,7 +175,8 @@ public abstract class Hotspot implements Comparable<Hotspot>
         {
             heat.coolDown();
         }
-        // heats.removeIf(heat -> heat.getValue() <= 0);
+
+        heats.removeIf(heat -> heat.getValue() <= 0 && heat.getType().getCoolingRate() > 0);
     }
 
     /**
@@ -195,8 +193,16 @@ public abstract class Hotspot implements Comparable<Hotspot>
     @Override
     public String toString()
     {
+        StringBuilder stringBuilder = new StringBuilder();
         var className = this.getClass().toString().split("\\.");
-        return "{type=" + className[className.length - 1] + "," + additionalToString() + ",heats=" + heats + "}";
+        stringBuilder.append("[").append(className[className.length - 1]).append("]\n");
+        stringBuilder.append("  ").append(additionalToString()).append("\n");
+        stringBuilder.append("  ").append("Heat: ").append(getHeat());
+        for(Heat heat : heats)
+        {
+            stringBuilder.append("\n").append("    ").append(heat);
+        }
+        return stringBuilder.toString();
     }
 
     protected abstract String additionalToString();

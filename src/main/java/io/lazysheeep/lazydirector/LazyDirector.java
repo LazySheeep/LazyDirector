@@ -150,6 +150,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     {
         if(!isActive)
         {
+            Log(Level.INFO, "Activating LazyDirector...");
             // load config
             Log(Level.INFO, "Loading configurations...");
             if(!loadConfig(configFileName))
@@ -181,6 +182,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     {
         if(isActive)
         {
+            Log(Level.INFO, "Deactivating LazyDirector...");
             // unregister events
             HandlerList.unregisterAll((Plugin) this);
             // destroy

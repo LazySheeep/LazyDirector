@@ -4,6 +4,7 @@ import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 
 import java.util.*;
@@ -97,22 +98,6 @@ public class HotspotManager
      * <p>
      *     Create a static hotspot.
      * </p>
-     * @param location The location of the hotspot
-     * @param heat The initial heat of the hotspot
-     * @return The created hotspot
-     */
-    public @NotNull StaticHotspot createStaticHotspot(@NotNull Location location, float heat)
-    {
-        StaticHotspot staticHotspot = new StaticHotspot(location, heat);
-        hotspots.add(staticHotspot);
-        LazyDirector.Log(Level.INFO, "Created static hotspot: " + staticHotspot);
-        return staticHotspot;
-    }
-
-    /**
-     * <p>
-     *     Create a static hotspot.
-     * </p>
      * @param staticHotspotConfigNode The configuration node to create the hotspot from
      * @return The created hotspot
      */
@@ -120,7 +105,7 @@ public class HotspotManager
     {
         StaticHotspot staticHotspot = new StaticHotspot(staticHotspotConfigNode);
         hotspots.add(staticHotspot);
-        LazyDirector.Log(Level.INFO, "Created static hotspot: " + staticHotspot);
+        LazyDirector.Log(Level.INFO, "Created hotspot: " + staticHotspot);
         return staticHotspot;
     }
 
@@ -135,7 +120,7 @@ public class HotspotManager
     {
         ActorHotspot actorHotspot = new ActorHotspot(actor);
         hotspots.add(actorHotspot);
-        LazyDirector.Log(Level.INFO, "Created actor hotspot: " + actorHotspot);
+        LazyDirector.Log(Level.INFO, "Created hotspot: " + actorHotspot);
         return actorHotspot;
     }
 
@@ -145,11 +130,11 @@ public class HotspotManager
      * </p>
      * @return The created hotspot
      */
-    public @NotNull ActorGroupHotspot createActorGroupHotspot()
+    public @NotNull ActorGroupHotspot createActorGroupHotspot(Actor initActor)
     {
-        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot();
+        ActorGroupHotspot actorGroupHotspot = new ActorGroupHotspot(initActor);
         hotspots.add(actorGroupHotspot);
-        LazyDirector.Log(Level.INFO, "Created actor group hotspot: " + actorGroupHotspot);
+        LazyDirector.Log(Level.INFO, "Created hotspot: " + actorGroupHotspot);
         return actorGroupHotspot;
     }
 
@@ -180,8 +165,9 @@ public class HotspotManager
             // if both actorGroupHotspots are null, create a new one
             if(actorGroupHotspotA == null)
             {
-                ActorGroupHotspot actorGroupHotspot = createActorGroupHotspot();
+                ActorGroupHotspot actorGroupHotspot = createActorGroupHotspot(actorA);
                 actorA.setActorGroupHotspot(actorGroupHotspot);
+                actorGroupHotspot.addActor(actorB);
                 actorB.setActorGroupHotspot(actorGroupHotspot);
                 return actorGroupHotspot;
             }
@@ -198,11 +184,13 @@ public class HotspotManager
             if(actorGroupHotspotA == null)
             {
                 actorA.setActorGroupHotspot(actorGroupHotspotB);
+                actorGroupHotspotB.addActor(actorA);
                 return actorGroupHotspotB;
             }
             else if(actorGroupHotspotB == null)
             {
                 actorB.setActorGroupHotspot(actorGroupHotspotA);
+                actorGroupHotspotA.addActor(actorB);
                 return actorGroupHotspotA;
             }
             // if both are not null, merge them
@@ -210,7 +198,9 @@ public class HotspotManager
             {
                 for(Actor actor : actorGroupHotspotB.getActors())
                 {
+                    actorGroupHotspotB.removeActor(actor);
                     actor.setActorGroupHotspot(actorGroupHotspotA);
+                    actorGroupHotspotA.addActor(actor);
                 }
                 destroyHotspot(actorGroupHotspotB);
                 return actorGroupHotspotA;
