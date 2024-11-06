@@ -12,6 +12,7 @@ import org.spongepowered.configurate.ConfigurationNode;
 public class OverTheShoulderView extends CameraView
 {
     private final Vector position;
+    private final float minDistance;
 
     public OverTheShoulderView(@NotNull ConfigurationNode configNode)
     {
@@ -19,13 +20,14 @@ public class OverTheShoulderView extends CameraView
         this.position = new Vector(positionNode.node("x").getDouble(0.0),
                                    positionNode.node("y").getDouble(0.0),
                                    positionNode.node("z").getDouble(0.0));
-
+        this.minDistance = configNode.node("minDistance").getFloat(0.0f);
         reset();
     }
 
-    public OverTheShoulderView(@NotNull Vector position)
+    public OverTheShoulderView(@NotNull Vector position, float minDistance)
     {
         this.position = position;
+        this.minDistance = minDistance;
     }
 
     @Override
@@ -34,17 +36,24 @@ public class OverTheShoulderView extends CameraView
         Vector focusForwardDirection = focus.getLocation().getDirection();
         Vector focusRightDirection = focusForwardDirection.getCrossProduct(new Vector(0.0f, 1.0f, 0.0f)).normalize();
         Vector focusUpDirection = focusRightDirection.getCrossProduct(focusForwardDirection).normalize();
-        Location nextCameraLocation = focus.getLocation()
-                                           .add(focusForwardDirection.multiply(position.getZ()))
-                                           .add(focusRightDirection.multiply(position.getX()))
-                                           .add(focusUpDirection.multiply(position.getY()));
+        Vector cameraOffset = focusForwardDirection.multiply(position.getZ())
+                                                .add(focusRightDirection.multiply(position.getX()))
+                                                .add(focusUpDirection.multiply(position.getY()));
+        Location nextCameraLocation = focus.getLocation().add(cameraOffset);
 
         RayTraceResult rayTraceResult = MathUtils.RayTrace(focus.getLocation(), nextCameraLocation);
         if(rayTraceResult != null)
         {
             Vector hitPosition = rayTraceResult.getHitPosition();
-            nextCameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
-            nextCameraLocation.add(nextCameraLocation.getDirection().multiply(0.1f));
+            if(hitPosition.distance(focus.getLocation().toVector()) > minDistance)
+            {
+                nextCameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
+                nextCameraLocation.add(nextCameraLocation.getDirection().multiply(0.2f));
+            }
+            else
+            {
+                nextCameraLocation = focus.getLocation().add(cameraOffset.clone().normalize().multiply(minDistance));
+            }
         }
 
         return nextCameraLocation;

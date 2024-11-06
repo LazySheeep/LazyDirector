@@ -123,7 +123,7 @@ public class ActorGroupHotspot extends Hotspot
         // destroy if no actors left
         if(actors.isEmpty())
         {
-            LazyDirector.GetPlugin().getHotspotManager().destroyHotspot(this);
+            LazyDirector.GetPlugin().getHotspotManager().delayedDestroyHotspot(this);
         }
     }
 

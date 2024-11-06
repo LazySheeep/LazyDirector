@@ -57,7 +57,7 @@ public class ChatRepeater implements Listener
         if (idleTime >= idleTimeThreshold)
         {
             idleTime = 0.0f;
-            repeat(Component.text("Current online: ", NamedTextColor.AQUA)
+            repeat(Component.text("Current Online: ", NamedTextColor.AQUA)
                             .append(Component.text(LazyDirector.GetPlugin()
                                                                .getActorManager()
                                                                .getAllActors()

@@ -122,11 +122,11 @@ public class LazyDirectorCommand extends BaseCommand
         }
     }
 
-    @Subcommand("camera")
-    public class CameraCommand extends BaseCommand
+    @Subcommand("cameraman")
+    public class CameramanCommand extends BaseCommand
     {
         @Subcommand("list")
-        @Description("List all cameras")
+        @Description("List all cameramen")
         public void onList(CommandSender sender)
         {
             if(!LazyDirector.GetPlugin().isActive())
@@ -140,6 +140,32 @@ public class LazyDirectorCommand extends BaseCommand
             stringBuilder.append("Total ").append(cameramen.size()).append(" Cameramen:");
             cameramen.forEach(cameraman -> stringBuilder.append("\n").append(cameraman));
             sender.sendMessage(stringBuilder.toString());
+        }
+
+        @Subcommand("candidate")
+        @Description("List current candidate hotspots of a specific cameraman")
+        @CommandCompletion("@cameramen")
+        public void onCandidate(CommandSender sender, String cameramanName)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage("LazyDirector is not activated.");
+                return;
+            }
+
+            Cameraman cameraman = LazyDirector.GetPlugin().getDirector().getCameraman(cameramanName);
+            if(cameraman != null)
+            {
+                StringBuilder stringBuilder = new StringBuilder();
+                List<Hotspot> hotspots = cameraman.getCandidateFocuses();
+                stringBuilder.append("Total ").append(hotspots.size()).append(" Candidate Hotspots for Cameraman ").append(cameraman.getName()).append(":");
+                hotspots.forEach(hotspot -> stringBuilder.append("\n").append(hotspot));
+                sender.sendMessage(stringBuilder.toString());
+            }
+            else
+            {
+                sender.sendMessage("Cameraman " + cameramanName + " not found.");
+            }
         }
     }
 

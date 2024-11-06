@@ -53,18 +53,21 @@ public class IsometricView extends CameraView
         Vector cameraDirection = MathUtils.GetDirectionFromPitchAndYaw(pitch, yaw);
         Location focusLocation = focus.getLocation();
         Location nextCameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-maxDistance)).setDirection(cameraDirection);
-        RayTraceResult rayTraceResult = MathUtils.RayTrace(focusLocation, nextCameraLocation);
-        if(rayTraceResult != null)
+        if(enableVisibilityCheck)
         {
-            Vector hitPosition = rayTraceResult.getHitPosition();
-            if(hitPosition.distance(focusLocation.toVector()) > minDistance)
+            RayTraceResult rayTraceResult = MathUtils.RayTrace(focusLocation, nextCameraLocation);
+            if(rayTraceResult != null)
             {
-                nextCameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
-                nextCameraLocation.add(nextCameraLocation.getDirection().multiply(0.1f));
-            }
-            else
-            {
-                nextCameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-minDistance)).setDirection(cameraDirection);
+                Vector hitPosition = rayTraceResult.getHitPosition();
+                if(hitPosition.distance(focusLocation.toVector()) > minDistance)
+                {
+                    nextCameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
+                    nextCameraLocation.add(nextCameraLocation.getDirection().multiply(0.1f));
+                }
+                else
+                {
+                    nextCameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-minDistance)).setDirection(cameraDirection);
+                }
             }
         }
         return nextCameraLocation;
