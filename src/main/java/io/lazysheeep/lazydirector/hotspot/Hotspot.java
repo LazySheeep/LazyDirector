@@ -1,7 +1,7 @@
 package io.lazysheeep.lazydirector.hotspot;
 
 import io.lazysheeep.lazydirector.LazyDirector;
-import io.lazysheeep.lazydirector.director.Cameraman;
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.heat.Heat;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import org.bukkit.Location;
@@ -15,7 +15,7 @@ import java.util.logging.Level;
  * <p>
  *     Hotspot is the container of heats.
  *     It is a point of interest in the world that can be heated up by actor activities,
- *     and can be focused on by the {@link Cameraman}.
+ *     and can be focused on by the {@link Camera}.
  * </p>
  * <p>
  *     This is the base class of all the hotspots, dealing with the common heat management behaviors.

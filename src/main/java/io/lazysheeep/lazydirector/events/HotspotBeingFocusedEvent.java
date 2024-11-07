@@ -1,6 +1,6 @@
 package io.lazysheeep.lazydirector.events;
 
-import io.lazysheeep.lazydirector.director.Cameraman;
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -11,22 +11,22 @@ public class HotspotBeingFocusedEvent extends Event
     private static final HandlerList HANDLER_LIST = new HandlerList();
 
     private final Hotspot hotspot;
-    private final Cameraman cameraman;
+    private final Camera camera;
 
     public Hotspot getHotspot()
     {
         return hotspot;
     }
 
-    public Cameraman getCameraman()
+    public Camera getCamera()
     {
-        return cameraman;
+        return camera;
     }
 
-    public HotspotBeingFocusedEvent(Hotspot hotspot, Cameraman cameraman)
+    public HotspotBeingFocusedEvent(Hotspot hotspot, Camera camera)
     {
         this.hotspot = hotspot;
-        this.cameraman = cameraman;
+        this.camera = camera;
     }
 
     @Override

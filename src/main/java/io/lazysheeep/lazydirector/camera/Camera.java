@@ -1,10 +1,9 @@
-package io.lazysheeep.lazydirector.director;
+package io.lazysheeep.lazydirector.camera;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.cameraview.CameraView;
-import io.lazysheeep.lazydirector.cameraview.OverTheShoulderView;
 import io.lazysheeep.lazydirector.cameraview.RawView;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
@@ -18,7 +17,6 @@ import org.bukkit.Material;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
@@ -29,15 +27,15 @@ import java.util.logging.Level;
 
 /**
  * <p>
- * Cameraman class represents a cameraman who can control a camera to shoot a hotspot.
+ * Camera class represents a camera which can control itself to spectate a hotspot.
  * </p>
  * <p>
- * All cameramen are managed by {@link Director}.
+ * All cameras are managed by {@link CameraManager}.
  * <br>
- * The creation of cameraman only happens when {@link Director} load the configuration.
+ * The creation of camera only happens when {@link CameraManager} load a configuration.
  * </p>
  */
-public class Cameraman
+public class Camera
 {
     private final String name;
     private final boolean cameraIsVisible;
@@ -61,19 +59,19 @@ public class Cameraman
 
     /**
      * <p>
-     * Construct a cameraman from a configuration node.
+     * Construct a camera from a configuration node.
      * </p>
      * <p>
-     * Cameraman's configuration is immutable, you'll have to create a new one if you want to load a new configuration.
+     * Camera's configuration is immutable, you'll have to create a new one if you want to load a new configuration.
      * </p>
      * <p>
-     * Should only be called by {@link Director}.
+     * Should only be called by {@link CameraManager}.
      * </p>
      *
-     * @param configNode The configuration node of the cameraman
+     * @param configNode The configuration node of the camera
      * @throws ConfigurateException
      */
-    Cameraman(@NotNull ConfigurationNode configNode) throws ConfigurateException
+    Camera(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
         this.name = configNode.node("name").getString();
         this.cameraIsVisible = configNode.node("visible").getBoolean(false);
@@ -113,26 +111,26 @@ public class Cameraman
             }
         }
 
-        LazyDirector.Log(Level.INFO, "Created cameraman: " + name);
+        LazyDirector.Log(Level.INFO, "Created camera: " + name);
     }
 
     /**
      * <p>
-     * Destroy the cameraman.
+     * Destroy the camera.
      * </p>
      */
     public void destroy()
     {
-        LazyDirector.Log(Level.INFO, "Destroying cameraman: " + name);
+        LazyDirector.Log(Level.INFO, "Destroying camera: " + name);
         // detach all outputs
-        outputs.forEach(this::detachCamera);
+        outputs.forEach(this::detachOutput);
         outputs.clear();
         // remove camera
-        if (camera != null)
+        if (cameraEntity != null)
         {
-            camera.remove();
+            cameraEntity.remove();
         }
-        camera = null;
+        cameraEntity = null;
         // reset focus
         currentFocus = null;
         focusTimer = 0.0f;
@@ -141,7 +139,7 @@ public class Cameraman
         cameraViewTimer = 0.0f;
     }
 
-    private Entity camera = null;
+    private Entity cameraEntity = null;
     private Hotspot currentFocus = null;
     private float focusTimer = 0.0f;
     private CameraViewWrap currentCameraViewWrap = null;
@@ -162,7 +160,7 @@ public class Cameraman
      * @param location The initial location of the camera entity
      * @return The created camera entity
      */
-    private static @Nullable Entity CreateCamera(@NotNull String name, @NotNull Location location, boolean visible)
+    private static @Nullable Entity CreateCameraEntity(@NotNull String name, @NotNull Location location, boolean visible)
     {
         if (location.getChunk().isLoaded())
         {
@@ -170,7 +168,7 @@ public class Cameraman
             if (newCamera.isValid())
             {
                 newCamera.customName(Component.text(name));
-                newCamera.addScoreboardTag("LazyDirector.Cameraman.Camera");
+                newCamera.addScoreboardTag("LazyDirector.Camera.CameraEntity");
                 if (visible)
                 {
                     PlayerProfile headProfile = Bukkit.createProfile(UUID.randomUUID());
@@ -181,14 +179,18 @@ public class Cameraman
                     newCamera.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
                     newCamera.setBrightness(new Display.Brightness(15, 15));
                 }
+                else
+                {
+                    newCamera.setInvisible(true);
+                }
                 newCamera.setTeleportDuration(4);
-                LazyDirector.Log(Level.INFO, "Created camera " + name + " at " + location);
+                LazyDirector.Log(Level.INFO, "Created camera entity " + name + " at " + location);
                 return newCamera;
             }
             else
             {
                 newCamera.remove();
-                LazyDirector.Log(Level.WARNING, "Failed to create camera " + name + " at " + location);
+                LazyDirector.Log(Level.WARNING, "Failed to create camera entity " + name + " at " + location);
                 return null;
             }
         }
@@ -205,12 +207,12 @@ public class Cameraman
      *
      * @param outputPlayer The player to attach to the camera
      */
-    public void attachCamera(@NotNull Player outputPlayer)
+    public void attachOutput(@NotNull Player outputPlayer)
     {
-        LazyDirector.GetPlugin().getDirector().detachFromAnyCamera(outputPlayer);
+        LazyDirector.GetPlugin().getCameraManager().detachFromAnyCamera(outputPlayer);
         outputs.add(outputPlayer);
         outputPlayer.setGameMode(GameMode.SPECTATOR);
-        outputPlayer.setSpectatorTarget(camera);
+        outputPlayer.setSpectatorTarget(cameraEntity);
     }
 
     /**
@@ -220,7 +222,7 @@ public class Cameraman
      *
      * @param outputPlayer The player to detach from the camera
      */
-    public void detachCamera(@NotNull Player outputPlayer)
+    public void detachOutput(@NotNull Player outputPlayer)
     {
         if (outputs.contains(outputPlayer))
         {
@@ -234,7 +236,7 @@ public class Cameraman
      * Update the camera, output players, and switch focus when needed.
      * </p>
      * <p>
-     * This method is called once every tick by {@link Director}.
+     * This method is called once every tick by {@link CameraManager}.
      * </p>
      */
     public void update()
@@ -261,13 +263,13 @@ public class Cameraman
         if (!outputs.isEmpty())
         {
             // check camera
-            if (camera == null || !camera.isValid())
+            if (cameraEntity == null || !cameraEntity.isValid())
             {
-                camera = CreateCamera("LazyDirector.Cameraman:" + name + ".Camera", LazyDirector.GetPlugin()
-                                                                                                .getHotspotManager()
-                                                                                                .getDefaultHotspot()
-                                                                                                .getLocation(), cameraIsVisible);
-                if (camera == null)
+                cameraEntity = CreateCameraEntity("LazyDirector.Camera:" + name + ".CameraEntity", LazyDirector.GetPlugin()
+                                                                                                            .getHotspotManager()
+                                                                                                            .getDefaultHotspot()
+                                                                                                            .getLocation(), cameraIsVisible);
+                if (cameraEntity == null)
                 {
                     return;
                 }
@@ -282,7 +284,7 @@ public class Cameraman
             }
             else
             {
-                camera.teleport(MathUtils.Lerp(camera.getLocation(), nextCameraLocation, 0.25f));
+                cameraEntity.teleport(MathUtils.Lerp(cameraEntity.getLocation(), nextCameraLocation, 0.25f));
             }
 
             // clear invalid outputs
@@ -292,17 +294,17 @@ public class Cameraman
             for (Player outputPlayer : outputs)
             {
                 // BUG: MC-157812 (https://bugs.mojang.com/browse/MC-157812)
-                if (!outputPlayer.isChunkSent(camera.getChunk()) || MathUtils.Distance(outputPlayer.getLocation(), camera.getLocation()) > 64.0d)
+                if (!outputPlayer.isChunkSent(cameraEntity.getChunk()) || MathUtils.Distance(outputPlayer.getLocation(), cameraEntity.getLocation()) > 64.0d)
                 {
                     // LazyDirector.Log(Level.INFO, "Waiting for chunk to be sent to " + outputPlayer.getName());
                     outputPlayer.setGameMode(GameMode.SPECTATOR);
                     outputPlayer.setSpectatorTarget(null);
-                    outputPlayer.teleport(camera.getLocation());
+                    outputPlayer.teleport(cameraEntity.getLocation());
                 }
                 else
                 {
                     outputPlayer.setGameMode(GameMode.SPECTATOR);
-                    outputPlayer.setSpectatorTarget(camera);
+                    outputPlayer.setSpectatorTarget(cameraEntity);
                 }
                 // avoid being kicked by Essentials because of afk
                 if (!outputPlayer.hasPermission("essentials.afk.kickexempt"))

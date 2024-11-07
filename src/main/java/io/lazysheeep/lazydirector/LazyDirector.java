@@ -6,16 +6,13 @@ import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.actor.ActorManager;
 import io.lazysheeep.lazydirector.command.LazyDirectorCommand;
 import io.lazysheeep.lazydirector.command.PlayerSelectorResolver;
-import io.lazysheeep.lazydirector.director.Cameraman;
-import io.lazysheeep.lazydirector.director.Director;
+import io.lazysheeep.lazydirector.camera.Camera;
+import io.lazysheeep.lazydirector.camera.CameraManager;
 import io.lazysheeep.lazydirector.feature.ChatRepeater;
 import io.lazysheeep.lazydirector.heat.HeatEventListener;
 import io.lazysheeep.lazydirector.heat.HeatType;
 import io.lazysheeep.lazydirector.hotspot.HotspotManager;
 import io.lazysheeep.lazydirector.util.FileUtils;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -81,16 +78,16 @@ public final class LazyDirector extends JavaPlugin implements Listener
     /**
      * The director instance.
      */
-    private final Director director = new Director();
+    private final CameraManager cameraManager = new CameraManager();
     /**
      * <p>
      *     Get the director instance.
      * </p>
      * @return The director instance
      */
-    public Director getDirector()
+    public CameraManager getCameraManager()
     {
-        return director;
+        return cameraManager;
     }
 
     /**
@@ -186,7 +183,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
             // unregister events
             HandlerList.unregisterAll((Plugin) this);
             // destroy
-            director.destroy();
+            cameraManager.destroy();
             actorManager.destroy();
             hotspotManager.destroy();
             // set flag
@@ -204,7 +201,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         Log(Level.INFO, "Registering commands...");
         PaperCommandManager commandManager = new PaperCommandManager(this);
         commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath()));
-        commandManager.getCommandCompletions().registerCompletion("cameramen", c -> getDirector().getAllCameramen().stream().map(Cameraman::getName).collect(Collectors.toList()));
+        commandManager.getCommandCompletions().registerCompletion("cameraNames", c -> getCameraManager().getAllCamera().stream().map(Camera::getName).collect(Collectors.toList()));
         commandManager.getCommandCompletions().registerCompletion("heatTypes", c -> HeatType.values().stream().map(HeatType::getName).collect(Collectors.toList()));
         commandManager.getCommandContexts().registerContext(Player[].class, new PlayerSelectorResolver());
         commandManager.registerCommand(new LazyDirectorCommand());
@@ -261,8 +258,8 @@ public final class LazyDirector extends JavaPlugin implements Listener
             ConfigurationNode actorManagerNode = rootNode.node("actorManager");
             actorManager.loadConfig(actorManagerNode);
 
-            ConfigurationNode directorNode = rootNode.node("director");
-            director.loadConfig(directorNode);
+            ConfigurationNode directorNode = rootNode.node("cameraManager");
+            cameraManager.loadConfig(directorNode);
         }
         catch (ConfigurateException e)
         {
@@ -288,7 +285,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
     {
         actorManager.update();
         hotspotManager.update();
-        director.update();
+        cameraManager.update();
     }
 
     /**

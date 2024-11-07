@@ -4,14 +4,16 @@ import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
-import io.lazysheeep.lazydirector.director.Cameraman;
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
+import io.lazysheeep.lazydirector.localization.LocalizationManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 
 import java.util.List;
+import java.util.Locale;
 
 @CommandAlias("lazydirector")
 @CommandPermission("op")
@@ -30,19 +32,20 @@ public class LazyDirectorCommand extends BaseCommand
     @CommandCompletion("@configNames")
     public void onActivate(CommandSender sender, String configName)
     {
+        Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
         if(LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage("LazyDirector is already activated. Please shutdown first if you want to load another config.");
+            sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_already_activated", locale));
         }
         else
         {
             if(LazyDirector.GetPlugin().activate(configName))
             {
-                sender.sendMessage("LazyDirector activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_success", locale));
             }
             else
             {
-                sender.sendMessage("Failed to activate LazyDirector.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_fail", locale));
             }
         }
     }
@@ -51,13 +54,14 @@ public class LazyDirectorCommand extends BaseCommand
     @Description("Shutdown LazyDirector")
     public void onShutdown(CommandSender sender)
     {
+        Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
         if(!LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage("LazyDirector is not activated.");
+            sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
             return;
         }
         LazyDirector.GetPlugin().shutdown();
-        sender.sendMessage("LazyDirector has been shutdown");
+        sender.sendMessage(LocalizationManager.GetLocalizedString("command_shutdown_success", locale));
     }
 
     @Subcommand("actor")
@@ -67,9 +71,10 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("List all actors")
         public void onList(CommandSender sender)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
@@ -86,24 +91,25 @@ public class LazyDirectorCommand extends BaseCommand
     {
         @Subcommand("attach")
         @Description("Attach output to camera")
-        @CommandCompletion("@players @cameramen")
-        public void onAttach(CommandSender sender, @Flags("other") Player output, String cameramanName)
+        @CommandCompletion("@players @cameraNames")
+        public void onAttach(CommandSender sender, @Flags("other") Player output, String cameraName)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
-            Cameraman cameraman = LazyDirector.GetPlugin().getDirector().getCameraman(cameramanName);
-            if(cameraman != null)
+            Camera camera = LazyDirector.GetPlugin().getCameraManager().getCamera(cameraName);
+            if(camera != null)
             {
-                cameraman.attachCamera(output);
-                sender.sendMessage("Attached " + output.getName() + " to cameraman " + cameraman.getName());
+                camera.attachOutput(output);
+                sender.sendMessage("Attached " + output.getName() + " to camera " + camera.getName());
             }
             else
             {
-                sender.sendMessage("Cameraman " + cameramanName + " not found.");
+                sender.sendMessage("Camera " + cameraName + " not found.");
             }
         }
 
@@ -111,60 +117,63 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("Detach output from any camera")
         public void onDetach(CommandSender sender, @Flags("other") Player output)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
-            LazyDirector.GetPlugin().getDirector().detachFromAnyCamera(output);
+            LazyDirector.GetPlugin().getCameraManager().detachFromAnyCamera(output);
             sender.sendMessage("Detached " + output.getName() + " from any camera");
         }
     }
 
-    @Subcommand("cameraman")
-    public class CameramanCommand extends BaseCommand
+    @Subcommand("camera")
+    public class CameraCommand extends BaseCommand
     {
         @Subcommand("list")
-        @Description("List all cameramen")
+        @Description("List all cameras")
         public void onList(CommandSender sender)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
             StringBuilder stringBuilder = new StringBuilder();
-            List<Cameraman> cameramen = LazyDirector.GetPlugin().getDirector().getAllCameramen();
-            stringBuilder.append("Total ").append(cameramen.size()).append(" Cameramen:");
-            cameramen.forEach(cameraman -> stringBuilder.append("\n").append(cameraman));
+            List<Camera> cameras = LazyDirector.GetPlugin().getCameraManager().getAllCamera();
+            stringBuilder.append("Total ").append(cameras.size()).append(" Cameras:");
+            cameras.forEach(camera -> stringBuilder.append("\n").append(camera));
             sender.sendMessage(stringBuilder.toString());
         }
 
         @Subcommand("candidate")
-        @Description("List current candidate hotspots of a specific cameraman")
-        @CommandCompletion("@cameramen")
-        public void onCandidate(CommandSender sender, String cameramanName)
+        @Description("List current candidate hotspots of a specific camera")
+        @CommandCompletion("@cameraNames")
+        public void onCandidate(CommandSender sender, String cameraName)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
-            Cameraman cameraman = LazyDirector.GetPlugin().getDirector().getCameraman(cameramanName);
-            if(cameraman != null)
+            Camera camera = LazyDirector.GetPlugin().getCameraManager().getCamera(cameraName);
+            if(camera != null)
             {
                 StringBuilder stringBuilder = new StringBuilder();
-                List<Hotspot> hotspots = cameraman.getCandidateFocuses();
-                stringBuilder.append("Total ").append(hotspots.size()).append(" Candidate Hotspots for Cameraman ").append(cameraman.getName()).append(":");
+                List<Hotspot> hotspots = camera.getCandidateFocuses();
+                stringBuilder.append("Total ").append(hotspots.size()).append(" Candidate Hotspots for Camera ").append(camera.getName()).append(":");
                 hotspots.forEach(hotspot -> stringBuilder.append("\n").append(hotspot));
                 sender.sendMessage(stringBuilder.toString());
             }
             else
             {
-                sender.sendMessage("Cameraman " + cameramanName + " not found.");
+                sender.sendMessage("Camera " + cameraName + " not found.");
             }
         }
     }
@@ -176,9 +185,10 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("List all hotspots")
         public void onList(CommandSender sender)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
@@ -195,9 +205,10 @@ public class LazyDirectorCommand extends BaseCommand
     @CommandCompletion("@players @heatTypes")
     public void onHeat(CommandSender sender, Player[] playerSelector, String heatType)
     {
+        Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
         if(!LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage("LazyDirector is not activated.");
+            sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
             return;
         }
 
@@ -232,9 +243,10 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("Enable chat repeater")
         public void onEnable(CommandSender sender)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 
@@ -246,9 +258,10 @@ public class LazyDirectorCommand extends BaseCommand
         @Description("Disable chat repeater")
         public void onDisable(CommandSender sender)
         {
+            Locale locale = sender instanceof Player player ? player.locale() : Locale.getDefault();
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage("LazyDirector is not activated.");
+                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", locale));
                 return;
             }
 

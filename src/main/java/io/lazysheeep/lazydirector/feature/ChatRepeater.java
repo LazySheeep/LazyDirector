@@ -25,13 +25,14 @@ public class ChatRepeater implements Listener
     private void repeat(Component message)
     {
         currentMessage = message;
+        currentMessageTime = 0.0f;
     }
 
     private void sendActionBar(Component message)
     {
         LazyDirector.GetPlugin()
-                    .getDirector()
-                    .getAllCameramen()
+                    .getCameraManager()
+                    .getAllCamera()
                     .forEach(cameraman -> cameraman.getOutputs().forEach(output -> output.sendActionBar(message)));
     }
 
