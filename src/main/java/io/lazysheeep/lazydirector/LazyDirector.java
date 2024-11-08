@@ -21,6 +21,8 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
@@ -85,7 +87,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * </p>
      * @return The director instance
      */
-    public CameraManager getCameraManager()
+    public @NotNull CameraManager getCameraManager()
     {
         return cameraManager;
     }
@@ -100,7 +102,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * </p>
      * @return The actor manager instance
      */
-    public ActorManager getActorManager()
+    public @NotNull ActorManager getActorManager()
     {
         return actorManager;
     }
@@ -115,7 +117,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      * </p>
      * @return The hotspot manager instance
      */
-    public HotspotManager getHotspotManager()
+    public @NotNull HotspotManager getHotspotManager()
     {
         return hotspotManager;
     }
@@ -123,9 +125,15 @@ public final class LazyDirector extends JavaPlugin implements Listener
     private final HeatEventListener heatEventListener = new HeatEventListener();
 
     private final ChatRepeater chatRepeater = new ChatRepeater();
-    public ChatRepeater getChatRepeater()
+    public @NotNull ChatRepeater getChatRepeater()
     {
         return chatRepeater;
+    }
+
+    private String recentConfigName = null;
+    public @Nullable String getRecentConfigName()
+    {
+        return recentConfigName;
     }
 
     private boolean isActive = false;
@@ -200,7 +208,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         // register command
         Log(Level.INFO, "Registering commands...");
         PaperCommandManager commandManager = new PaperCommandManager(this);
-        commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath()));
+        commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath(), ".conf", false));
         commandManager.getCommandCompletions().registerCompletion("cameraNames", c -> getCameraManager().getAllCamera().stream().map(Camera::getName).collect(Collectors.toList()));
         commandManager.getCommandCompletions().registerCompletion("heatTypes", c -> HeatType.values().stream().map(HeatType::getName).collect(Collectors.toList()));
         commandManager.getCommandContexts().registerContext(Player[].class, new PlayerSelectorResolver());
@@ -239,7 +247,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
      */
     private boolean loadConfig(String configFileName)
     {
-        final HoconConfigurationLoader loader = HoconConfigurationLoader.builder().path(Path.of(getDataFolder().getPath(), configFileName)).build();
+        final HoconConfigurationLoader loader = HoconConfigurationLoader.builder().path(Path.of(getDataFolder().getPath(), configFileName + ".conf")).build();
         try
         {
             ConfigurationNode rootNode = loader.load();
@@ -271,6 +279,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
             Log(Level.SEVERE, "An error occurred while loading configuration: " + Arrays.toString(e.getStackTrace()));
             return false;
         }
+        recentConfigName = configFileName;
         return true;
     }
 

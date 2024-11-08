@@ -24,4 +24,21 @@ public class FileUtils
             throw new RuntimeException(e);
         }
     }
+
+    public static List<String> getAllFileNames(String directoryPath, String extension, boolean includeExtension)
+    {
+        try (Stream<Path> paths = Files.walk(Paths.get(directoryPath)))
+        {
+            return paths.filter(Files::isRegularFile)
+                        .map(Path::getFileName)
+                        .map(Path::toString)
+                        .filter(fileName -> fileName.endsWith(extension))
+                        .map(fileName -> includeExtension ? fileName : fileName.substring(0, fileName.length() - extension.length()))
+                        .collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -7,6 +7,7 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -67,7 +68,8 @@ public class ChatRepeater implements Listener
                             .append(Component.text(LazyDirector.GetPlugin()
                                                                .getActorManager()
                                                                .getAllActors()
-                                                               .size(), NamedTextColor.GREEN)));
+                                                               .size(), NamedTextColor.GREEN))
+                            .append(Component.text(" (" + Bukkit.getOnlinePlayers().size() + ")", NamedTextColor.GRAY)));
         }
     }
 
