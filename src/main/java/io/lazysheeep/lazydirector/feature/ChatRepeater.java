@@ -2,6 +2,7 @@ package io.lazysheeep.lazydirector.feature;
 
 import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.localization.LocalizationManager;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -9,9 +10,13 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+
+import java.util.Locale;
 
 public class ChatRepeater implements Listener
 {
@@ -58,7 +63,7 @@ public class ChatRepeater implements Listener
         if (idleTime >= idleTimeThreshold)
         {
             idleTime = 0.0f;
-            repeat(Component.text("Current Online: ", NamedTextColor.AQUA)
+            repeat(Component.text(LocalizationManager.GetLocalizedString("chat_repeater_current_online", Locale.getDefault()), NamedTextColor.AQUA)
                             .append(Component.text(LazyDirector.GetPlugin()
                                                                .getActorManager()
                                                                .getAllActors()
@@ -80,7 +85,7 @@ public class ChatRepeater implements Listener
     public void onPlayerJoin(PlayerJoinEvent event)
     {
         TextComponent message = Component.text(event.getPlayer().getName(), NamedTextColor.GREEN)
-                                         .append(Component.text(" joined the game.", NamedTextColor.YELLOW));
+                                         .append(Component.text(LocalizationManager.GetLocalizedString("chat_repeater_player_join", Locale.getDefault()), NamedTextColor.YELLOW));
         repeat(message);
     }
 
@@ -88,7 +93,7 @@ public class ChatRepeater implements Listener
     public void onPlayerQuit(PlayerQuitEvent event)
     {
         TextComponent message = Component.text(event.getPlayer().getName(), NamedTextColor.GREEN)
-                                         .append(Component.text(" left the game.", NamedTextColor.YELLOW));
+                                         .append(Component.text(LocalizationManager.GetLocalizedString("chat_repeater_player_quit", Locale.getDefault()), NamedTextColor.YELLOW));
         repeat(message);
     }
 
@@ -96,12 +101,24 @@ public class ChatRepeater implements Listener
     public void onPlayerAdvancementDone(PlayerAdvancementDoneEvent event)
     {
         var display = event.getAdvancement().getDisplay();
-        if(display != null && display.doesAnnounceToChat())
+        if (display != null && display.doesAnnounceToChat())
         {
+            String frameString = switch (display.frame())
+            {
+                case TASK -> "chat_repeater_advancement_task";
+                case GOAL -> "chat_repeater_advancement_goal";
+                case CHALLENGE -> "chat_repeater_advancement_challenge";
+            };
             TextComponent message = Component.text(event.getPlayer().getName(), NamedTextColor.GREEN)
-                                             .append(Component.text(" has made the advancement ", NamedTextColor.AQUA))
+                                             .append(Component.text(LocalizationManager.GetLocalizedString(frameString, Locale.getDefault()), NamedTextColor.AQUA))
                                              .append(event.getAdvancement().displayName());
             repeat(message);
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerDeath(PlayerDeathEvent event)
+    {
+        repeat(event.deathMessage());
     }
 }

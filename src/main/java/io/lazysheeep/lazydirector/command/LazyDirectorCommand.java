@@ -167,7 +167,7 @@ public class LazyDirectorCommand extends BaseCommand
             {
                 StringBuilder stringBuilder = new StringBuilder();
                 List<Hotspot> hotspots = camera.getCandidateFocuses();
-                stringBuilder.append("Total ").append(hotspots.size()).append(" Candidate Hotspots for Camera ").append(camera.getName()).append(":");
+                stringBuilder.append("Total ").append(hotspots.size()).append(" candidate hotspots for camera ").append(camera.getName()).append(":");
                 hotspots.forEach(hotspot -> stringBuilder.append("\n").append(hotspot));
                 sender.sendMessage(stringBuilder.toString());
             }
@@ -251,7 +251,7 @@ public class LazyDirectorCommand extends BaseCommand
             }
 
             Bukkit.getPluginManager().registerEvents(LazyDirector.GetPlugin().getChatRepeater(), LazyDirector.GetPlugin());
-            sender.sendMessage("Chat repeater enabled.");
+            sender.sendMessage(LocalizationManager.GetLocalizedString("chat_repeater_enabled", locale));
         }
 
         @Subcommand("disable")
@@ -266,7 +266,7 @@ public class LazyDirectorCommand extends BaseCommand
             }
 
             HandlerList.unregisterAll(LazyDirector.GetPlugin().getChatRepeater());
-            sender.sendMessage("Chat repeater disabled.");
+            sender.sendMessage(LocalizationManager.GetLocalizedString("chat_repeater_disabled", locale));
         }
     }
 }
