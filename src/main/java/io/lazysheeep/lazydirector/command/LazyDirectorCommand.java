@@ -273,8 +273,14 @@ public class LazyDirectorCommand extends BaseCommand
                 senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
-            LazyDirector.GetPlugin().getActorManager().grantPermission(senderPlayer);
-            senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_granted", Locale.getDefault()), NamedTextColor.AQUA));
+            if(LazyDirector.GetPlugin().getActorManager().grantPermission(senderPlayer))
+            {
+                senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_granted", Locale.getDefault()), NamedTextColor.AQUA));
+            }
+            else
+            {
+                senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_not_enabled", Locale.getDefault()), NamedTextColor.YELLOW));
+            }
         }
 
         @Subcommand("revoke")
@@ -286,8 +292,14 @@ public class LazyDirectorCommand extends BaseCommand
                 senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
-            LazyDirector.GetPlugin().getActorManager().revokePermission(senderPlayer);
-            senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_revoked", Locale.getDefault()), NamedTextColor.AQUA));
+            if(LazyDirector.GetPlugin().getActorManager().revokePermission(senderPlayer))
+            {
+                senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_revoked", Locale.getDefault()), NamedTextColor.AQUA));
+            }
+            else
+            {
+                senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_not_enabled", Locale.getDefault()), NamedTextColor.YELLOW));
+            }
         }
     }
 

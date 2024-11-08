@@ -232,16 +232,26 @@ public class ActorManager
         else return 1;
     }
 
-    public void grantPermission(Player player)
+    public boolean grantPermission(Player player)
     {
-        player.removeScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied");
-        player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted");
+        if(askForPermission)
+        {
+            player.removeScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied");
+            player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted");
+            return true;
+        }
+        else return false;
     }
 
-    public void revokePermission(Player player)
+    public boolean revokePermission(Player player)
     {
-        player.removeScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted");
-        player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied");
+        if(askForPermission)
+        {
+            player.removeScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted");
+            player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied");
+            return true;
+        }
+        else return false;
     }
 
     /**
@@ -277,7 +287,7 @@ public class ActorManager
                     // inform player
                      player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_player_become_actor", Locale.getDefault()), NamedTextColor.GRAY));
                 }
-                else
+                else if(askForPermission)
                 {
                     // ask for permission
                     player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_0", Locale.getDefault()), NamedTextColor.YELLOW));
