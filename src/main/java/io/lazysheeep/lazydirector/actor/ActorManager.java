@@ -1,6 +1,10 @@
 package io.lazysheeep.lazydirector.actor;
 
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.localization.LocalizationManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -13,10 +17,12 @@ import org.spongepowered.configurate.ConfigurationNode;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 
 public class ActorManager
 {
+    private boolean askForPermission = true;
     private final List<World> stageWorlds = new ArrayList<>();
     private final List<GameMode> actorGameModes = new ArrayList<>();
 
@@ -33,6 +39,7 @@ public class ActorManager
     public @NotNull ActorManager loadConfig(@NotNull ConfigurationNode configNode) throws ConfigurateException
     {
         resetConfig();
+        askForPermission = configNode.node("askForPermission").getBoolean(true);
         for (ConfigurationNode stageWorldNode : configNode.node("stageWorlds").childrenList())
         {
             String worldName = stageWorldNode.getString("no_value");
@@ -66,6 +73,7 @@ public class ActorManager
      */
     private void resetConfig()
     {
+        askForPermission = true;
         stageWorlds.clear();
         actorGameModes.clear();
     }
@@ -176,7 +184,7 @@ public class ActorManager
      */
     private boolean shouldBeActor(Player player)
     {
-        return player.isOnline() && (stageWorlds.isEmpty() || stageWorlds.contains(player.getWorld())) && actorGameModes.contains(player.getGameMode());
+        return player.isOnline() && (stageWorlds.isEmpty() || stageWorlds.contains(player.getWorld())) && actorGameModes.contains(player.getGameMode()) && getPermission(player) >= 0;
     }
 
     /**
@@ -189,6 +197,51 @@ public class ActorManager
     private boolean shouldBeActor(Actor actor)
     {
         return actor.isValid() && shouldBeActor(actor.getHostPlayer());
+    }
+
+    /**
+     * <p>
+     *     Get whether a player has granted permission to be an actor.<br>
+     *     When askForPermission is false, always return 1.
+     * </p>
+     * @param player The player
+     * @return
+     * <p>
+     *     1: granted<br>
+     *     0: default, haven't granted or denied<br>
+     *     -1: denied
+     * </p>
+     */
+    public int getPermission(Player player)
+    {
+        if(askForPermission)
+        {
+            if(player.getScoreboardTags().contains("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted"))
+            {
+                return 1;
+            }
+            else if(player.getScoreboardTags().contains("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied"))
+            {
+                return -1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        else return 1;
+    }
+
+    public void grantPermission(Player player)
+    {
+        player.removeScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied");
+        player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted");
+    }
+
+    public void revokePermission(Player player)
+    {
+        player.removeScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_granted");
+        player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_denied");
     }
 
     /**
@@ -206,6 +259,9 @@ public class ActorManager
         {
             if (!shouldBeActor(actor))
             {
+                // inform player
+                actor.getHostPlayer().sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_player_no_longer_actor", Locale.getDefault()), NamedTextColor.GRAY));
+
                 destroyActor(actor);
             }
         }
@@ -215,6 +271,22 @@ public class ActorManager
             if (shouldBeActor(player) && !isActor(player))
             {
                 createActor(player);
+
+                if(player.getScoreboardTags().contains("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_asked"))
+                {
+                    // inform player
+                     player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_player_become_actor", Locale.getDefault()), NamedTextColor.GRAY));
+                }
+                else
+                {
+                    // ask for permission
+                    player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_0", Locale.getDefault()), NamedTextColor.YELLOW));
+                    player.sendMessage(Component.text("  [" + LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_yes", Locale.getDefault()) + "]", NamedTextColor.GREEN).clickEvent(ClickEvent.runCommand("/lazydirector permission grant")));
+                    player.sendMessage(Component.text("  [" + LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_no", Locale.getDefault()) + "]", NamedTextColor.RED).clickEvent(ClickEvent.runCommand("/lazydirector permission revoke")));
+                    player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_1", Locale.getDefault()), NamedTextColor.YELLOW));
+                    player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_2", Locale.getDefault()), NamedTextColor.YELLOW));
+                    player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_asked");
+                }
             }
         }
         // Remove destroyed actors

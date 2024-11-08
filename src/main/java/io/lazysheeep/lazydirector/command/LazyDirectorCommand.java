@@ -7,6 +7,8 @@ import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.localization.LocalizationManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -16,12 +18,12 @@ import java.util.List;
 import java.util.Locale;
 
 @CommandAlias("lazydirector")
-@CommandPermission("op")
 public class LazyDirectorCommand extends BaseCommand
 {
 
     @Default
     @Description("LazyDirector main command")
+    @CommandPermission("op")
     public void onDefault(CommandSender sender)
     {
         sender.sendMessage("usage: /lazydirector [activate|shutdown|actor|output|camera|hotspot]");
@@ -29,64 +31,68 @@ public class LazyDirectorCommand extends BaseCommand
 
     @Subcommand("activate")
     @Description("Activate LazyDirector")
+    @CommandPermission("op")
     @CommandCompletion("@configNames")
     public void onActivate(CommandSender sender, String configName)
     {
         if(LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_already_activated", Locale.getDefault()));
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_activate_already_activated", Locale.getDefault()), NamedTextColor.YELLOW));
         }
         else
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_start", Locale.getDefault()) + configName);
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_activate_start", Locale.getDefault()) + configName, NamedTextColor.AQUA));
             if(LazyDirector.GetPlugin().activate(configName))
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_success", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_activate_success", Locale.getDefault()), NamedTextColor.GREEN));
             }
             else
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_activate_fail", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_activate_fail", Locale.getDefault()), NamedTextColor.RED));
             }
         }
     }
 
     @Subcommand("shutdown")
     @Description("Shutdown LazyDirector")
+    @CommandPermission("op")
     public void onShutdown(CommandSender sender)
     {
         if(!LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
             return;
         }
-        sender.sendMessage(LocalizationManager.GetLocalizedString("command_shutdown_start", Locale.getDefault()));
+        sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_shutdown_start", Locale.getDefault()), NamedTextColor.AQUA));
         LazyDirector.GetPlugin().shutdown();
-        sender.sendMessage(LocalizationManager.GetLocalizedString("command_shutdown_success", Locale.getDefault()));
+        sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_shutdown_success", Locale.getDefault()), NamedTextColor.GREEN));
     }
 
     @Subcommand("reload")
     @Description("Reload LazyDirector")
+    @CommandPermission("op")
     public void onReload(CommandSender sender)
     {
         if(!LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
             return;
         }
-        sender.sendMessage(LocalizationManager.GetLocalizedString("command_reload_start", Locale.getDefault()) + LazyDirector.GetPlugin().getRecentConfigName());
+        sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_reload_start", Locale.getDefault()) + LazyDirector.GetPlugin().getRecentConfigName(), NamedTextColor.AQUA));
         LazyDirector.GetPlugin().shutdown();
         if(LazyDirector.GetPlugin().activate(LazyDirector.GetPlugin().getRecentConfigName()))
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_reload_success", Locale.getDefault()));
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_reload_success", Locale.getDefault()), NamedTextColor.GREEN));
         }
         else
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_reload_fail", Locale.getDefault()));
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_reload_fail", Locale.getDefault()), NamedTextColor.RED));
         }
 
     }
 
     @Subcommand("actor")
+    @CommandPermission("op")
     public class ActorCommand extends BaseCommand
     {
         @Subcommand("list")
@@ -95,7 +101,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
             StringBuilder stringBuilder = new StringBuilder();
@@ -107,6 +113,7 @@ public class LazyDirectorCommand extends BaseCommand
     }
 
     @Subcommand("output")
+    @CommandPermission("op")
     public class OutputCommand extends BaseCommand
     {
         @Subcommand("attach")
@@ -116,7 +123,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
@@ -124,11 +131,11 @@ public class LazyDirectorCommand extends BaseCommand
             if(camera != null)
             {
                 camera.attachOutput(output);
-                sender.sendMessage("Attached " + output.getName() + " to camera " + camera.getName());
+                sender.sendMessage(Component.text("Attached " + output.getName() + " to camera " + camera.getName(), NamedTextColor.AQUA));
             }
             else
             {
-                sender.sendMessage("Camera " + cameraName + " not found.");
+                sender.sendMessage(Component.text("Camera " + cameraName + " not found.", NamedTextColor.RED));
             }
         }
 
@@ -138,16 +145,17 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
             LazyDirector.GetPlugin().getCameraManager().detachFromAnyCamera(output);
-            sender.sendMessage("Detached " + output.getName() + " from any camera");
+            sender.sendMessage(Component.text("Detached " + output.getName() + " from any camera", NamedTextColor.AQUA));
         }
     }
 
     @Subcommand("camera")
+    @CommandPermission("op")
     public class CameraCommand extends BaseCommand
     {
         @Subcommand("list")
@@ -156,7 +164,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
@@ -174,7 +182,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
@@ -189,12 +197,13 @@ public class LazyDirectorCommand extends BaseCommand
             }
             else
             {
-                sender.sendMessage("Camera " + cameraName + " not found.");
+                sender.sendMessage(Component.text("Camera " + cameraName + " not found.", NamedTextColor.RED));
             }
         }
     }
 
     @Subcommand("hotspot")
+    @CommandPermission("op")
     public class HotspotCommand extends BaseCommand
     {
         @Subcommand("list")
@@ -203,7 +212,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
@@ -217,12 +226,13 @@ public class LazyDirectorCommand extends BaseCommand
 
     @Subcommand("heat")
     @Description("Increase the heat of player")
+    @CommandPermission("op")
     @CommandCompletion("@players @heatTypes")
     public void onHeat(CommandSender sender, Player[] playerSelector, String heatType)
     {
         if(!LazyDirector.GetPlugin().isActive())
         {
-            sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+            sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
             return;
         }
 
@@ -249,8 +259,41 @@ public class LazyDirectorCommand extends BaseCommand
         }
     }
 
+    @Subcommand("permission")
+    @Description("Manage permission")
+    @CommandPermission("")
+    public class PermissionCommand extends BaseCommand
+    {
+        @Subcommand("grant")
+        @Description("Grant your permission to LazyDirector")
+        public void onGrant(Player senderPlayer)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
+                return;
+            }
+            LazyDirector.GetPlugin().getActorManager().grantPermission(senderPlayer);
+            senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_granted", Locale.getDefault()), NamedTextColor.AQUA));
+        }
+
+        @Subcommand("revoke")
+        @Description("Revoke your permission to LazyDirector")
+        public void onRevoke(Player senderPlayer)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
+                return;
+            }
+            LazyDirector.GetPlugin().getActorManager().revokePermission(senderPlayer);
+            senderPlayer.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_permission_revoked", Locale.getDefault()), NamedTextColor.AQUA));
+        }
+    }
+
     @Subcommand("chatRepeater")
     @Description("Manage chat repeater")
+    @CommandPermission("op")
     public class ChatRepeaterCommand extends BaseCommand
     {
         @Subcommand("enable")
@@ -259,7 +302,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
@@ -273,7 +316,7 @@ public class LazyDirectorCommand extends BaseCommand
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
-                sender.sendMessage(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()));
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
                 return;
             }
 
