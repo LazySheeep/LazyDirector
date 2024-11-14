@@ -3,6 +3,8 @@ package io.lazysheeep.lazydirector.heat;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.events.HotspotBeingFocusedEvent;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,6 +14,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 public class HeatEventListener implements Listener
@@ -41,7 +44,7 @@ public class HeatEventListener implements Listener
         Actor actor = LazyDirector.GetPlugin().getActorManager().getActor(event.getPlayer());
         if(actor != null)
         {
-            if(actor.lastInteractedBlock == null || actor.lastInteractedBlock.getLocation() != event.getBlock().getLocation())
+            if(actor.lastInteractedBlock == null || !actor.lastInteractedBlock.getLocation().equals(event.getBlock().getLocation()))
             {
                 actor.heat("player_place_block");
             }
@@ -55,11 +58,26 @@ public class HeatEventListener implements Listener
         Actor actor = LazyDirector.GetPlugin().getActorManager().getActor(event.getPlayer());
         if(actor != null)
         {
-            if(actor.lastInteractedBlock == null || actor.lastInteractedBlock.getLocation() != event.getBlock().getLocation())
+            if(actor.lastInteractedBlock == null || !actor.lastInteractedBlock.getLocation().equals(event.getBlock().getLocation()))
             {
                 actor.heat("player_break_block");
             }
             actor.lastInteractedBlock = event.getBlock();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerInteract(PlayerInteractEvent event)
+    {
+        Actor actor = LazyDirector.GetPlugin().getActorManager().getActor(event.getPlayer());
+        if(actor != null)
+        {
+            Block interationBlock = event.getClickedBlock();;
+            if(interationBlock != null && (actor.lastInteractedBlock == null || !actor.lastInteractedBlock.getLocation().equals(interationBlock.getLocation())))
+            {
+                actor.heat("player_interact_block");
+            }
+            actor.lastInteractedBlock = interationBlock;
         }
     }
 

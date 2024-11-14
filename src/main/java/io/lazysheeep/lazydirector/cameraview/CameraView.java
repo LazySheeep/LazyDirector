@@ -26,17 +26,31 @@ public abstract class CameraView
         }
     }
 
+    public abstract @NotNull Location getCurrentCameraLocation();
+
     /**
      * <p>
-     * Update camera location.
+     *     Create a new camera location.
      * </p>
      *
-     * @param focus The focus location
+     * @param focus The focus
+     * @return The new camera location
+     */
+    public abstract void newCameraLocation(@NotNull Hotspot focus);
+
+    /**
+     * <p>
+     *     Update camera location.
+     * </p>
+     *
+     * @param focus The focus
      * @return The updated camera location
      */
-    public abstract @Nullable Location updateCameraLocation(@NotNull Hotspot focus);
+    public abstract void updateCameraLocation(@NotNull Hotspot focus);
 
-    public abstract void reset();
+    public abstract boolean isViewGood();
+
+    public abstract boolean cannotFindGoodView();
 
     @Override
     public String toString()

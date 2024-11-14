@@ -7,10 +7,7 @@ import io.lazysheeep.lazydirector.util.RandomUtils;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
-
-import java.util.logging.Level;
 
 public class HelicopterView extends CameraView
 {
@@ -32,10 +29,6 @@ public class HelicopterView extends CameraView
     private static final double yawTolerance = Math.toRadians(2.0);
     private static final float heightTolerance = 2.0f;
 
-    private Location helicopterLocation;
-    private Vector helicopterVelocity;
-    private float badViewTimer;
-
     public HelicopterView(@NotNull ConfigurationNode configNode)
     {
         minEnginePower = configNode.node("minEnginePower").getFloat(0.0f);
@@ -52,58 +45,67 @@ public class HelicopterView extends CameraView
         enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
         retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
-        reset();
+    }
+
+    private Location currentCameraLocation = null;
+    private Vector currentCameraVelocity = null;
+    private float badViewTimer = 0.0f;
+    private boolean cannotFindGoodView = false;
+
+    @Override
+    public @NotNull Location getCurrentCameraLocation()
+    {
+        if(currentCameraLocation == null)
+        {
+            throw new IllegalStateException("Camera location is not initialized.");
+        }
+        return currentCameraLocation;
     }
 
     @Override
-    public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
+    public void newCameraLocation(@NotNull Hotspot focus)
+    {
+        int retries = 0;
+        Location newCameraLocation = null;
+        cannotFindGoodView = true;
+        while (retries < retriesWhenBadView)
+        {
+            newCameraLocation = focus.getLocation()
+                                         .clone()
+                                         .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
+            if (!enableVisibilityCheck || MathUtils.IsVisible(newCameraLocation, focus.getLocation()))
+            {
+                currentCameraLocation = newCameraLocation;
+                currentCameraVelocity = new Vector(RandomUtils.NextDouble(0.0, 0.5), 0.0, RandomUtils.NextDouble(0.0, 0.5));
+                badViewTimer = 0.0f;
+                cannotFindGoodView = false;
+                break;
+            }
+            retries++;
+        }
+        if(currentCameraLocation == null)
+        {
+            currentCameraLocation = newCameraLocation;
+            currentCameraVelocity = new Vector(RandomUtils.NextDouble(0.0, 0.5), 0.0, RandomUtils.NextDouble(0.0, 0.5));
+        }
+    }
+
+    @Override
+    public void updateCameraLocation(@NotNull Hotspot focus)
     {
         Location focusLocation = focus.getLocation();
         Location hoverLocation = focusLocation.clone().add(0.0, hoverHeight, 0.0);
 
-        if (helicopterLocation == null || helicopterVelocity == null || MathUtils.Distance(helicopterLocation, hoverLocation) > criticalDistance || !helicopterLocation.getBlock().getType().isAir())
+        if (currentCameraLocation == null || badViewTimer >= maxBadViewTime || MathUtils.Distance(currentCameraLocation, focusLocation) > criticalDistance)
         {
-            initHelicopter(focus);
-        }
-
-        // check if the focus is visible from the camera
-        if (!enableVisibilityCheck || MathUtils.IsVisible(helicopterLocation, focus.getLocation()))
-        {
-            badViewTimer = 0.0f;
-        }
-        else
-        {
-            badViewTimer += LazyDirector.GetServerTickDeltaTime();
-            if (badViewTimer > maxBadViewTime)
-            {
-                boolean success = false;
-                int iteration = 0;
-                while (iteration < retriesWhenBadView)
-                {
-                    initHelicopter(focus);
-                    if (MathUtils.IsVisible(helicopterLocation, focus.getLocation()))
-                    {
-                        // success
-                        success = true;
-                        break;
-                    }
-                    iteration++;
-                }
-                badViewTimer = 0.0f;
-                // fail
-                if (!success)
-                {
-                    helicopterLocation = null;
-                    return null;
-                }
-            }
+            newCameraLocation(focus);
         }
 
         // calculate propeller force direction
-        Vector f = hoverLocation.toVector().subtract(helicopterLocation.toVector()).setY(0.0);
+        Vector f = hoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
         double fLength = f.length();
         Vector fNorm = f.clone().normalize();
-        Vector vNorm = helicopterVelocity.clone().setY(0.0).normalize();
+        Vector vNorm = currentCameraVelocity.clone().setY(0.0).normalize();
         Vector propellerForceDirection;
 
         double theta = Math.asin(hoverRadius / fLength);
@@ -124,8 +126,8 @@ public class HelicopterView extends CameraView
 
         boolean needGoUp = false;
         boolean needGoDown = false;
-        double deltaHeight = hoverLocation.getY() - helicopterLocation.getY();
-        if (terrainCollision(helicopterLocation, -(int) minDistanceToDownwardTerrain))
+        double deltaHeight = hoverLocation.getY() - currentCameraLocation.getY();
+        if (terrainCollision(currentCameraLocation, -(int) minDistanceToDownwardTerrain))
         {
             needGoUp = true;
         }
@@ -133,7 +135,7 @@ public class HelicopterView extends CameraView
         {
             needGoDown = true;
         }
-        if (terrainCollision(helicopterLocation, (int) minDistanceToUpwardTerrain))
+        if (terrainCollision(currentCameraLocation, (int) minDistanceToUpwardTerrain))
         {
             needGoDown = true;
         }
@@ -155,7 +157,7 @@ public class HelicopterView extends CameraView
         float enginePower = MathUtils.squareMap((float) fLength, minPowerDistance, maxPowerDistance, minEnginePower, maxEnginePower);
         enginePower = MathUtils.Clamp(enginePower, minEnginePower, maxEnginePower);
 
-        double vc = helicopterVelocity.dot(propellerForceDirection);
+        double vc = currentCameraVelocity.dot(propellerForceDirection);
         double deltaT = LazyDirector.GetServerTickDeltaTime();
         double t0, t1;
         if (vc > 0)
@@ -172,33 +174,41 @@ public class HelicopterView extends CameraView
 
         // calculate resultant force
         Vector resultantForce = new Vector(0.0, 0.0, 0.0);
-        resultantForce.add(helicopterVelocity.clone().multiply(-fragFactor));
+        resultantForce.add(currentCameraVelocity.clone().multiply(-fragFactor));
         resultantForce.add(propellerForceDirection.clone().multiply(propellerForce));
 
         // apply force
-        helicopterVelocity.add(resultantForce.clone().multiply(1.0f / helicopterMass));
-        helicopterLocation.add(helicopterVelocity.clone().multiply(LazyDirector.GetServerTickDeltaTime()));
+        currentCameraVelocity.add(resultantForce.clone().multiply(1.0f / helicopterMass));
+        currentCameraLocation.add(currentCameraVelocity.clone().multiply(LazyDirector.GetServerTickDeltaTime()));
 
-        MathUtils.LookAt(helicopterLocation, focusLocation);
+        // set rotation
+        MathUtils.LookAt(currentCameraLocation, focusLocation);
 
-        return helicopterLocation;
+        // check view goodness
+        if (fLength < maxPowerDistance && (!enableVisibilityCheck || MathUtils.IsVisible(currentCameraLocation, focus.getLocation())))
+        {
+            badViewTimer = 0.0f;
+        }
+        else if(!currentCameraLocation.getBlock().getType().isAir())
+        {
+            badViewTimer = maxBadViewTime;
+        }
+        else
+        {
+            badViewTimer += LazyDirector.GetServerTickDeltaTime();
+        }
     }
 
     @Override
-    public void reset()
+    public boolean isViewGood()
     {
-        helicopterLocation = null;
-        helicopterVelocity = null;
-        badViewTimer = 0.0f;
+        return badViewTimer <= 0.0f;
     }
 
-    private void initHelicopter(@NotNull Hotspot focus)
+    @Override
+    public boolean cannotFindGoodView()
     {
-        helicopterLocation = focus.getLocation()
-                                  .clone()
-                                  .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
-        helicopterVelocity = new Vector(0.0, 0.0, 0.2);
-        badViewTimer = maxBadViewTime;
+        return cannotFindGoodView;
     }
 
     private static boolean terrainCollision(@NotNull Location location, int rangeY)

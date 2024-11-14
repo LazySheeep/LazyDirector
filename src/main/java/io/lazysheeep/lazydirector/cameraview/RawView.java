@@ -10,15 +10,39 @@ public class RawView extends CameraView
 {
     public RawView(@Nullable ConfigurationNode configNode) {}
 
+    private Location currentCameraLocation = null;
+
     @Override
-    public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
+    public @NotNull Location getCurrentCameraLocation()
     {
-        return focus.getLocation();
+        if(currentCameraLocation == null)
+        {
+            throw new IllegalStateException("Camera location is not initialized.");
+        }
+        return currentCameraLocation;
     }
 
     @Override
-    public void reset()
+    public void newCameraLocation(@NotNull Hotspot focus)
     {
+        currentCameraLocation = focus.getLocation();
+    }
 
+    @Override
+    public void updateCameraLocation(@NotNull Hotspot focus)
+    {
+        currentCameraLocation = focus.getLocation();
+    }
+
+    @Override
+    public boolean isViewGood()
+    {
+        return true;
+    }
+
+    @Override
+    public boolean cannotFindGoodView()
+    {
+        return false;
     }
 }

@@ -21,7 +21,6 @@ public class OverTheShoulderView extends CameraView
                                    positionNode.node("y").getDouble(0.0),
                                    positionNode.node("z").getDouble(0.0));
         this.minDistance = configNode.node("minDistance").getFloat(0.0f);
-        reset();
     }
 
     public OverTheShoulderView(@NotNull Vector position, float minDistance)
@@ -30,38 +29,66 @@ public class OverTheShoulderView extends CameraView
         this.minDistance = minDistance;
     }
 
-    @Override
-    public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
+    private Location currentCameraLocation = null;
+
+    private @NotNull Location calculateCameraLocation(@NotNull Hotspot focus)
     {
         Vector focusForwardDirection = focus.getLocation().getDirection();
         Vector focusRightDirection = focusForwardDirection.getCrossProduct(new Vector(0.0f, 1.0f, 0.0f)).normalize();
         Vector focusUpDirection = focusRightDirection.getCrossProduct(focusForwardDirection).normalize();
         Vector cameraOffset = focusForwardDirection.multiply(position.getZ())
-                                                .add(focusRightDirection.multiply(position.getX()))
-                                                .add(focusUpDirection.multiply(position.getY()));
-        Location nextCameraLocation = focus.getLocation().add(cameraOffset);
+                                                   .add(focusRightDirection.multiply(position.getX()))
+                                                   .add(focusUpDirection.multiply(position.getY()));
+        Location cameraLocation = focus.getLocation().add(cameraOffset);
 
-        RayTraceResult rayTraceResult = MathUtils.RayTrace(focus.getLocation(), nextCameraLocation);
+        RayTraceResult rayTraceResult = MathUtils.RayTrace(focus.getLocation(), cameraLocation);
         if(rayTraceResult != null)
         {
             Vector hitPosition = rayTraceResult.getHitPosition();
             if(hitPosition.distance(focus.getLocation().toVector()) > minDistance)
             {
-                nextCameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
-                nextCameraLocation.add(nextCameraLocation.getDirection().multiply(0.2f));
+                cameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
+                cameraLocation.add(cameraLocation.getDirection().multiply(0.2f));
             }
             else
             {
-                nextCameraLocation = focus.getLocation().add(cameraOffset.clone().normalize().multiply(minDistance));
+                cameraLocation = focus.getLocation().add(cameraOffset.clone().normalize().multiply(minDistance));
             }
         }
-
-        return nextCameraLocation;
+        return cameraLocation;
     }
 
     @Override
-    public void reset()
+    public @NotNull Location getCurrentCameraLocation()
     {
-        // Do nothing
+        if(currentCameraLocation == null)
+        {
+            throw new IllegalStateException("Camera location is not initialized.");
+        }
+        return currentCameraLocation;
+    }
+
+    @Override
+    public void newCameraLocation(@NotNull Hotspot focus)
+    {
+        currentCameraLocation = calculateCameraLocation(focus);
+    }
+
+    @Override
+    public void updateCameraLocation(@NotNull Hotspot focus)
+    {
+        currentCameraLocation = calculateCameraLocation(focus);
+    }
+
+    @Override
+    public boolean isViewGood()
+    {
+        return true;
+    }
+
+    @Override
+    public boolean cannotFindGoodView()
+    {
+        return false;
     }
 }

@@ -3,12 +3,10 @@ package io.lazysheeep.lazydirector.cameraview;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
-import io.lazysheeep.lazydirector.util.RandomUtils;
 import org.bukkit.Location;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 
 // isometric view
@@ -21,10 +19,6 @@ public class IsometricView extends CameraView
     private final boolean enableVisibilityCheck;
     private final float maxBadViewTime;
 
-    private double pitch;
-    private double yaw;
-    private float badViewTimer;
-
     public IsometricView(@NotNull ConfigurationNode configNode)
     {
         minDistance = configNode.node("minDistance").getFloat(0.0f);
@@ -33,7 +27,6 @@ public class IsometricView extends CameraView
         maxPitch = configNode.node("maxPitch").getDouble(30.0);
         enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
-        reset();
     }
 
     public IsometricView(float minDistance, float maxDistance, double minPitch, double maxPitch, boolean enableVisibilityCheck, float maxBadViewTime)
@@ -44,83 +37,107 @@ public class IsometricView extends CameraView
         this.maxPitch = maxPitch;
         this.enableVisibilityCheck = enableVisibilityCheck;
         this.maxBadViewTime = maxBadViewTime;
-
-        reset();
     }
 
-    private @NotNull Location nextCameraLocation(@NotNull Hotspot focus)
+    private double pitch = 30.0f;
+    private double yaw = -135.0f;
+    private float badViewTimer = 0.0f;
+    private Location currentCameraLocation = null;
+    private boolean cannotFindGoodView = false;
+
+    private @NotNull Location calculateCameraLocation(@NotNull Hotspot focus)
     {
         Vector cameraDirection = MathUtils.GetDirectionFromPitchAndYaw(pitch, yaw);
         Location focusLocation = focus.getLocation();
-        Location nextCameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-maxDistance)).setDirection(cameraDirection);
+        Location cameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-maxDistance)).setDirection(cameraDirection);
         if(enableVisibilityCheck)
         {
-            RayTraceResult rayTraceResult = MathUtils.RayTrace(focusLocation, nextCameraLocation);
+            RayTraceResult rayTraceResult = MathUtils.RayTrace(focusLocation, cameraLocation);
             if(rayTraceResult != null)
             {
                 Vector hitPosition = rayTraceResult.getHitPosition();
                 if(hitPosition.distance(focusLocation.toVector()) > minDistance)
                 {
-                    nextCameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
-                    nextCameraLocation.add(nextCameraLocation.getDirection().multiply(0.1f));
+                    cameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
+                    cameraLocation.add(cameraLocation.getDirection().multiply(0.1f));
                 }
                 else
                 {
-                    nextCameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-minDistance)).setDirection(cameraDirection);
+                    cameraLocation = focusLocation.clone().add(cameraDirection.clone().multiply(-minDistance)).setDirection(cameraDirection);
                 }
             }
         }
-        return nextCameraLocation;
+        return cameraLocation;
     }
 
     @Override
-    public @Nullable Location updateCameraLocation(@NotNull Hotspot focus)
+    public @NotNull Location getCurrentCameraLocation()
     {
-        Location nextCameraLocation = nextCameraLocation(focus);
-        // check if the focus is visible from the camera
-        if(!enableVisibilityCheck || MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
+        if(currentCameraLocation == null)
+        {
+            throw new IllegalStateException("Camera location is not initialized.");
+        }
+        return currentCameraLocation;
+    }
+
+    @Override
+    public void newCameraLocation(@NotNull Hotspot focus)
+    {
+        Location newCameraLocation = null;
+        cannotFindGoodView = true;
+        for(pitch = minPitch; pitch < maxPitch; pitch += 5.0)
+        {
+            for(yaw = -135.0; yaw < 135.0; yaw += 90.0)
+            {
+                newCameraLocation = calculateCameraLocation(focus);
+                if (!enableVisibilityCheck || MathUtils.IsVisible(newCameraLocation, focus.getLocation()))
+                {
+                    currentCameraLocation = newCameraLocation;
+                    badViewTimer = 0.0f;
+                    cannotFindGoodView = false;
+                    return;
+                }
+            }
+        }
+        if(currentCameraLocation == null)
+        {
+            currentCameraLocation = newCameraLocation;
+        }
+    }
+
+    @Override
+    public void updateCameraLocation(@NotNull Hotspot focus)
+    {
+        // update camera location
+        if (currentCameraLocation == null || badViewTimer >= maxBadViewTime)
+        {
+            newCameraLocation(focus);
+        }
+        else
+        {
+            currentCameraLocation = calculateCameraLocation(focus);
+        }
+
+        // update bad view timer
+        if(!enableVisibilityCheck || MathUtils.IsVisible(currentCameraLocation, focus.getLocation()))
         {
             badViewTimer = 0.0f;
         }
         else
         {
             badViewTimer += LazyDirector.GetServerTickDeltaTime();
-            if(badViewTimer > maxBadViewTime)
-            {
-                boolean success = false;
-                for(pitch = minPitch; pitch < maxPitch; pitch += 5.0)
-                {
-                    for(yaw = -135.0; yaw < 135.0; yaw += 90.0)
-                    {
-                        nextCameraLocation = nextCameraLocation(focus);
-                        if (MathUtils.IsVisible(nextCameraLocation, focus.getLocation()))
-                        {
-                            // success
-                            success = true;
-                            break;
-                        }
-                    }
-                    if(success)
-                    {
-                        break;
-                    }
-                }
-                // fail
-                if(!success)
-                {
-                    nextCameraLocation = null;
-                }
-                badViewTimer = 0.0f;
-            }
         }
-        return nextCameraLocation;
     }
 
     @Override
-    public void reset()
+    public boolean isViewGood()
     {
-        pitch = minPitch;
-        yaw = -135.0;
-        badViewTimer = maxBadViewTime;
+        return badViewTimer <= 0.0f;
+    }
+
+    @Override
+    public boolean cannotFindGoodView()
+    {
+        return cannotFindGoodView;
     }
 }

@@ -125,14 +125,14 @@ public class MathUtils
         origin.setDirection(new Vector(dx, dy, dz));
     }
 
-    public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Vector direction, double maxDistance)
-    {
-        return start.getWorld()
-                    .rayTraceBlocks(start, direction, maxDistance, FluidCollisionMode.NEVER, true);
-    }
+    private static final double rayTraceMaxDistance = 256.0;
 
     public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Location end)
     {
+        if(start.getWorld() != end.getWorld())
+        {
+            throw new IllegalArgumentException("start and end locations not in the same world");
+        }
         return start.getWorld()
                     .rayTraceBlocks(start, end.toVector()
                                               .subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
@@ -140,6 +140,10 @@ public class MathUtils
 
     public static boolean IsVisible(@NotNull Location start, @NotNull Location end)
     {
+        if(MathUtils.Distance(start, end) > rayTraceMaxDistance)
+        {
+            return false;
+        }
         RayTraceResult result = start.getWorld()
                                      .rayTraceBlocks(start, end.toVector()
                                                                .subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);

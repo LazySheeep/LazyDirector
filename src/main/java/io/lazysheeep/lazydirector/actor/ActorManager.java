@@ -282,12 +282,12 @@ public class ActorManager
             {
                 createActor(player);
 
-                if(player.getScoreboardTags().contains("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_asked"))
+                if(getPermission(player) == 1)
                 {
                     // inform player
                      player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_player_become_actor", Locale.getDefault()), NamedTextColor.GRAY));
                 }
-                else if(askForPermission)
+                else
                 {
                     // ask for permission
                     player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_0", Locale.getDefault()), NamedTextColor.YELLOW));
@@ -295,7 +295,6 @@ public class ActorManager
                     player.sendMessage(Component.text("  [" + LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_no", Locale.getDefault()) + "]", NamedTextColor.RED).clickEvent(ClickEvent.runCommand("/lazydirector permission revoke")));
                     player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_1", Locale.getDefault()), NamedTextColor.YELLOW));
                     player.sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_ask_for_permission_2", Locale.getDefault()), NamedTextColor.YELLOW));
-                    player.addScoreboardTag("LazyDirector_" + LazyDirector.GetPlugin().getRecentConfigName() + "_permission_asked");
                 }
             }
         }
