@@ -39,11 +39,14 @@ public class Camera
 {
     private final String name;
     private final boolean cameraIsVisible;
+    private final double closeHideDistance;
 
     private final float minSwitchTime;
     private final float initFocusScore;
     private final float goodFocusRewardMultiplier;
     private final float badFocusPenaltyMultiplier;
+    private final float focusSatTime;
+    private final float focusSatPenalty;
 
     private final int candidateMaxCount;
     private final float candidateColdestRank;
@@ -78,11 +81,14 @@ public class Camera
     {
         this.name = configNode.node("name").getString();
         this.cameraIsVisible = configNode.node("visible").getBoolean(false);
+        this.closeHideDistance = configNode.node("closeHideDistance").getDouble(0.0);
 
-        this.minSwitchTime = configNode.node("minSwitchTime").getFloat(1.0f);
-        this.initFocusScore = configNode.node("initFocusScore").getFloat(1.0f);
-        this.goodFocusRewardMultiplier = configNode.node("goodFocusRewardMultiplier").getFloat(1.0f);
-        this.badFocusPenaltyMultiplier = configNode.node("badFocusPenaltyMultiplier").getFloat(1.0f);
+        this.minSwitchTime = configNode.node("minSwitchTime").getFloat(0.0f);
+        this.initFocusScore = configNode.node("initFocusScore").getFloat(999.0f);
+        this.goodFocusRewardMultiplier = configNode.node("goodFocusRewardMultiplier").getFloat(0.0f);
+        this.badFocusPenaltyMultiplier = configNode.node("badFocusPenaltyMultiplier").getFloat(0.0f);
+        this.focusSatTime = configNode.node("focusSatTime").getFloat(Float.MAX_VALUE);
+        this.focusSatPenalty = configNode.node("focusSatPenalty").getFloat(0.0f);
 
         ConfigurationNode candidateFocusesNode = configNode.node("candidateFocuses");
         this.candidateMaxCount = candidateFocusesNode.node("maxCount").getInt(Integer.MAX_VALUE);
@@ -276,6 +282,10 @@ public class Camera
         {
             focusScore -= badFocusPenaltyMultiplier * (lastCandidateFocus.getHeat() - currentFocus.getHeat()) * LazyDirector.GetServerTickDeltaTime();
         }
+        if(focusTimer > focusSatTime)
+        {
+            focusScore -= focusSatPenalty * LazyDirector.GetServerTickDeltaTime();
+        }
         // switch focus
         if (focusScore <= 0.0f && Math.min(focusTimer, cameraViewTimer) > minSwitchTime)
         {
@@ -353,6 +363,22 @@ public class Camera
                 {
                     Objects.requireNonNull(outputPlayer.addAttachment(LazyDirector.GetPlugin(), 1200))
                            .setPermission("essentials.afk.kickexempt", true);
+                }
+            }
+            // hide players that are too close to the camera entity from output players
+            List<Player> otherPlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
+            otherPlayers.removeAll(outputs);
+            for(Player otherPlayer : otherPlayers)
+            {
+                if(MathUtils.Distance(otherPlayer.getEyeLocation(), cameraEntity.getLocation()) < closeHideDistance)
+                {
+                    outputs.forEach(output -> output.hidePlayer(LazyDirector.GetPlugin(), otherPlayer));
+                    otherPlayer.hideEntity(LazyDirector.GetPlugin(), cameraEntity);
+                }
+                else
+                {
+                    outputs.forEach(output -> output.showPlayer(LazyDirector.GetPlugin(), otherPlayer));
+                    otherPlayer.showEntity(LazyDirector.GetPlugin(), cameraEntity);
                 }
             }
         }
@@ -469,8 +495,8 @@ public class Camera
                         break;
                     }
                 }
-                // update camera view
-                currentCameraViewWrap.cameraView.updateCameraLocation(currentFocus);
+                // new camera view
+                currentCameraViewWrap.cameraView.newCameraLocation(currentFocus);
                 if (currentCameraViewWrap.cameraView.cannotFindGoodView())
                 {
                     // if the new camera view cannot find a good view, remove it from the candidate list and try again

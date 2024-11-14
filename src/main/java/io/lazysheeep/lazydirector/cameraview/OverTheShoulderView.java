@@ -3,6 +3,7 @@ package io.lazysheeep.lazydirector.cameraview;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -45,10 +46,18 @@ public class OverTheShoulderView extends CameraView
         if(rayTraceResult != null)
         {
             Vector hitPosition = rayTraceResult.getHitPosition();
+            BlockFace hitBlockFace = rayTraceResult.getHitBlockFace();
             if(hitPosition.distance(focus.getLocation().toVector()) > minDistance)
             {
                 cameraLocation.set(hitPosition.getX(), hitPosition.getY(), hitPosition.getZ());
-                cameraLocation.add(cameraLocation.getDirection().multiply(0.2f));
+                if(hitBlockFace != null)
+                {
+                    cameraLocation.add(hitBlockFace.getDirection().multiply(0.2f));
+                }
+                else
+                {
+                    cameraLocation.add(cameraLocation.getDirection().multiply(0.2f));
+                }
             }
             else
             {

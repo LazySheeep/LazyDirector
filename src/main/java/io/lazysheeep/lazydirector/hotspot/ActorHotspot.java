@@ -13,6 +13,11 @@ public class ActorHotspot extends Hotspot
         heat("hunger");
     }
 
+    public Actor getActor()
+    {
+        return actor;
+    }
+
     @Override
     protected void additionalDestroy()
     {
@@ -34,7 +39,7 @@ public class ActorHotspot extends Hotspot
     @Override
     public Location getLocation()
     {
-        return actor.getHostPlayer().getEyeLocation();
+        return actor.getPlayer().getEyeLocation();
     }
 
     @Override

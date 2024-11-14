@@ -139,7 +139,7 @@ public class ActorManager
         if(actor.isValid())
         {
             LazyDirector.Log(Level.INFO, "Destroying actor: " + actor);
-            actor.getHostPlayer().removeMetadata("Actor", LazyDirector.GetPlugin());
+            actor.getPlayer().removeMetadata("Actor", LazyDirector.GetPlugin());
             actor.destroy();
         }
     }
@@ -155,7 +155,7 @@ public class ActorManager
     {
         for(Actor actor : actors)
         {
-            if(actor.isValid() && actor.getHostPlayer().equals(hostPlayer))
+            if(actor.isValid() && actor.getPlayer().equals(hostPlayer))
             {
                 return actor;
             }
@@ -196,7 +196,7 @@ public class ActorManager
      */
     private boolean shouldBeActor(Actor actor)
     {
-        return actor.isValid() && shouldBeActor(actor.getHostPlayer());
+        return actor.isValid() && shouldBeActor(actor.getPlayer());
     }
 
     /**
@@ -270,7 +270,7 @@ public class ActorManager
             if (!shouldBeActor(actor))
             {
                 // inform player
-                actor.getHostPlayer().sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_player_no_longer_actor", Locale.getDefault()), NamedTextColor.GRAY));
+                actor.getPlayer().sendMessage(Component.text(LocalizationManager.GetLocalizedString("actor_manager_player_no_longer_actor", Locale.getDefault()), NamedTextColor.GRAY));
 
                 destroyActor(actor);
             }

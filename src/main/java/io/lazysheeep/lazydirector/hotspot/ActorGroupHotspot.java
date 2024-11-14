@@ -3,16 +3,13 @@ package io.lazysheeep.lazydirector.hotspot;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.actor.Actor;
 import io.lazysheeep.lazydirector.util.MathUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
 
 public class ActorGroupHotspot extends Hotspot
 {
@@ -22,7 +19,7 @@ public class ActorGroupHotspot extends Hotspot
     ActorGroupHotspot(Actor initActor)
     {
         actors.add(initActor);
-        world = initActor.getHostPlayer().getWorld();
+        world = initActor.getPlayer().getWorld();
     }
 
     public List<Actor> getActors()
@@ -101,7 +98,7 @@ public class ActorGroupHotspot extends Hotspot
         // remove actors that are in different worlds
         for(Actor actor : actors)
         {
-            if(actor.getHostPlayer().getWorld() != world)
+            if(actor.getPlayer().getWorld() != world)
             {
                 actor.setActorGroupHotspot(null);
             }
@@ -113,7 +110,7 @@ public class ActorGroupHotspot extends Hotspot
             Location location = getLocation();
             for(Actor actor : actors)
             {
-                if(MathUtils.Distance(actor.getHostPlayer().getLocation(), location) > 32.0d)
+                if(MathUtils.Distance(actor.getPlayer().getLocation(), location) > 32.0d)
                 {
                     actor.setActorGroupHotspot(null);
                 }
@@ -130,10 +127,10 @@ public class ActorGroupHotspot extends Hotspot
     @Override
     public @NotNull Location getLocation()
     {
-        Location location = new Location(actors.getFirst().getHostPlayer().getWorld(), 0, 0, 0);
+        Location location = new Location(actors.getFirst().getPlayer().getWorld(), 0, 0, 0);
         for(Actor actor : actors)
         {
-            location.add(actor.getHostPlayer().getEyeLocation());
+            location.add(actor.getPlayer().getEyeLocation());
         }
         return location.multiply(1.0 / actors.size());
     }

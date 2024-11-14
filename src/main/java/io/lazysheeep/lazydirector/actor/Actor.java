@@ -3,10 +3,15 @@ package io.lazysheeep.lazydirector.actor;
 import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.ActorGroupHotspot;
 import io.lazysheeep.lazydirector.hotspot.ActorHotspot;
+import io.lazysheeep.lazydirector.util.FixedSizeQueue;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * <p>
@@ -35,7 +40,7 @@ public class Actor
      * </p>
      * @return The host player
      */
-    public @NotNull Player getHostPlayer()
+    public @NotNull Player getPlayer()
     {
         if(isValid())
         {
@@ -228,5 +233,5 @@ public class Actor
      *     Properties related to heat events
      * </p>
      */
-    public Block lastInteractedBlock = null;
+    public FixedSizeQueue<Location> recentInteractedLocations = new FixedSizeQueue<>(8);
 }
