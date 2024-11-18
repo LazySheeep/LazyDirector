@@ -4,44 +4,60 @@ import io.lazysheeep.lazydirector.LazyDirector;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import io.lazysheeep.lazydirector.util.RandomUtils;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurationNode;
 
+import java.util.logging.Level;
+
 public class HelicopterView extends CameraView
 {
-    private final float minEnginePower;
-    private final float maxEnginePower;
-    private final float minPowerDistance;
-    private final float maxPowerDistance;
-    private final float criticalDistance;
-    private final float helicopterMass;
-    private final float fragFactor;
-    private final float hoverRadius;
     private final float hoverHeight;
-    private final float minDistanceToDownwardTerrain;
-    private final float minDistanceToUpwardTerrain;
+    private final float hoverRadius;
+    private final float chaseDistance;
+    private final float criticalDistance;
+    private final float hoverSpeed;
+    private final float CASSpeed;
+    private final float maxSpeed;
+    private final double radarAngleVertical;
+    private final double radarAngleHorizontal;
+    private final double radarScanStepVertical;
+    private final double radarScanStepHorizontal;
+    private final int radarScanStepCountVertical;
+    private final int radarScanStepCountHorizontal;
+    private final float radarRangeFrontMultiplier;
+    private final boolean showRadarRayGreenParticle;
+    private final boolean showRadarRayRedParticle;
+    private final boolean showPropellerParticle;
     private final boolean enableVisibilityCheck;
     private final float maxBadViewTime;
     private final int retriesWhenBadView;
 
-    private static final double yawTolerance = Math.toRadians(2.0);
     private static final float heightTolerance = 2.0f;
 
     public HelicopterView(@NotNull ConfigurationNode configNode)
     {
-        minEnginePower = configNode.node("minEnginePower").getFloat(0.0f);
-        maxEnginePower = configNode.node("maxEnginePower").getFloat(0.0f);
-        minPowerDistance = configNode.node("minPowerDistance").getFloat(0.0f);
-        maxPowerDistance = configNode.node("maxPowerDistance").getFloat(Float.MAX_VALUE);
-        criticalDistance = configNode.node("criticalDistance").getFloat(Float.MAX_VALUE);
-        helicopterMass = configNode.node("helicopterMass").getFloat(0.0f);
-        fragFactor = configNode.node("fragFactor").getFloat(0.0f);
-        hoverRadius = configNode.node("hoverRadius").getFloat(0.0f);
         hoverHeight = configNode.node("hoverHeight").getFloat(0.0f);
-        minDistanceToDownwardTerrain = configNode.node("minDistanceToDownwardTerrain").getFloat(0.0f);
-        minDistanceToUpwardTerrain = configNode.node("minDistanceToUpwardTerrain").getFloat(0.0f);
+        hoverRadius = configNode.node("hoverRadius").getFloat(0.0f);
+        chaseDistance = configNode.node("chaseDistance").getFloat(0.0f);
+        criticalDistance = configNode.node("criticalDistance").getFloat(Float.MAX_VALUE);
+        hoverSpeed = configNode.node("hoverSpeed").getFloat(0.0f);
+        CASSpeed = configNode.node("CASSpeed").getFloat(0.0f);
+        maxSpeed = configNode.node("maxSpeed").getFloat(0.0f);
+        radarAngleVertical = Math.toRadians(configNode.node("radarAngleVertical").getDouble(0.0));
+        radarAngleHorizontal = Math.toRadians(configNode.node("radarAngleHorizontal").getDouble(0.0));
+        radarScanStepVertical = Math.toRadians(configNode.node("radarScanStepVertical").getDouble(0.0));
+        radarScanStepHorizontal = Math.toRadians(configNode.node("radarScanStepHorizontal").getDouble(0.0));
+        radarScanStepCountVertical = (int) Math.ceil(radarAngleVertical / radarScanStepVertical) + 1;
+        radarScanStepCountHorizontal = (int) Math.ceil(radarAngleHorizontal / radarScanStepHorizontal) + 1;
+        radarFlags = new boolean[radarScanStepCountVertical][radarScanStepCountHorizontal];
+        showRadarRayGreenParticle = configNode.node("showRadarRayGreenParticle").getBoolean(false);
+        showRadarRayRedParticle = configNode.node("showRadarRayRedParticle").getBoolean(false);
+        showPropellerParticle = configNode.node("showPropellerParticle").getBoolean(false);
+        radarRangeFrontMultiplier = configNode.node("radarRangeFrontMultiplier").getFloat(0.0f);
         enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
         retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
@@ -52,10 +68,13 @@ public class HelicopterView extends CameraView
     private float badViewTimer = 0.0f;
     private boolean cannotFindGoodView = false;
 
+    private int lastRadarScanStep = 0;
+    private final boolean[][] radarFlags;
+
     @Override
     public @NotNull Location getCurrentCameraLocation()
     {
-        if(currentCameraLocation == null)
+        if (currentCameraLocation == null)
         {
             throw new IllegalStateException("Camera location is not initialized.");
         }
@@ -71,8 +90,8 @@ public class HelicopterView extends CameraView
         while (retries < retriesWhenBadView)
         {
             newCameraLocation = focus.getLocation()
-                                         .clone()
-                                         .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
+                                     .clone()
+                                     .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
             if (!enableVisibilityCheck || MathUtils.IsVisible(newCameraLocation, focus.getLocation()))
             {
                 currentCameraLocation = newCameraLocation;
@@ -83,7 +102,7 @@ public class HelicopterView extends CameraView
             }
             retries++;
         }
-        if(currentCameraLocation == null)
+        if (currentCameraLocation == null)
         {
             currentCameraLocation = newCameraLocation;
             currentCameraVelocity = new Vector(RandomUtils.NextDouble(0.0, 0.5), 0.0, RandomUtils.NextDouble(0.0, 0.5));
@@ -101,95 +120,110 @@ public class HelicopterView extends CameraView
             newCameraLocation(focus);
         }
 
-        // calculate propeller force direction
-        Vector f = hoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
-        double fLength = f.length();
-        Vector fNorm = f.clone().normalize();
-        Vector vNorm = currentCameraVelocity.clone().setY(0.0).normalize();
-        Vector propellerForceDirection;
-
-        double theta = Math.asin(hoverRadius / fLength);
-        double cross = fNorm.getX() * vNorm.getZ() - fNorm.getZ() * vNorm.getX();
-        double turningAngle = (vNorm.angle(fNorm) < Math.toRadians(100.0)) ? Math.toRadians(60.0) : Math.toRadians(120.0);
-        if (fNorm.angle(vNorm) > theta + yawTolerance)
+        // calculate main propeller force direction
+        Vector chh = hoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
+        float chhLength = (float)chh.length();
+        Vector chhNorm = chh.clone().normalize();
+        Vector vhNorm = currentCameraVelocity.clone().setY(0.0).normalize();
+        Vector upDirection = new Vector(0.0, 1.0, 0.0);
+        double deltaHeight = hoverLocation.getY() - currentCameraLocation.getY();
+        Vector chaseVelocityDirection;
+        if(chhLength > hoverRadius)
         {
-            propellerForceDirection = vNorm.clone().rotateAroundY(turningAngle * (cross > 0.0 ? 1.0 : -1.0));
-        }
-        else if (fNorm.angle(vNorm) < theta - yawTolerance)
-        {
-            propellerForceDirection = vNorm.clone().rotateAroundY(turningAngle * (cross < 0.0 ? 1.0 : -1.0));
+            double chhvTheta = Math.asin(hoverRadius / chhLength);
+            double chhvCross = chhNorm.getX() * vhNorm.getZ() - chhNorm.getZ() * vhNorm.getX();
+            chaseVelocityDirection = chhNorm.clone().rotateAroundY(chhvTheta * (chhvCross < 0.0 ? 1.0 : -1.0));
         }
         else
         {
-            propellerForceDirection = vNorm.clone();
+            chaseVelocityDirection = vhNorm.clone();
         }
+        float chaseSpeed = MathUtils.squareMap(chhLength, hoverRadius, chaseDistance, hoverSpeed, maxSpeed);
 
-        boolean needGoUp = false;
-        boolean needGoDown = false;
-        double deltaHeight = hoverLocation.getY() - currentCameraLocation.getY();
-        if (terrainCollision(currentCameraLocation, -(int) minDistanceToDownwardTerrain))
+        if (deltaHeight > heightTolerance)
         {
-            needGoUp = true;
+            chaseVelocityDirection.add(upDirection);
         }
         else if (deltaHeight < -heightTolerance)
         {
-            needGoDown = true;
+            chaseVelocityDirection.subtract(upDirection);
         }
-        if (terrainCollision(currentCameraLocation, (int) minDistanceToUpwardTerrain))
-        {
-            needGoDown = true;
-        }
-        else if (deltaHeight > heightTolerance)
-        {
-            needGoUp = true;
-        }
+        chaseVelocityDirection.normalize();
+        Vector chaseVelocity = chaseVelocityDirection.clone().multiply(chaseSpeed);
 
-        if (needGoUp && !needGoDown)
+        // CAS
+        Vector forwardDirection = currentCameraVelocity.clone().normalize();
+        Vector rightDirection = currentCameraVelocity.getCrossProduct(upDirection).normalize();
+        Vector CASDirection = new Vector(0.0, 0.0, 0.0);
+        boolean CASFlag = false;
+        for (int radarScanHorizontal = 0; radarScanHorizontal < radarScanStepCountHorizontal; radarScanHorizontal++)
         {
-            propellerForceDirection.setY(1.0).normalize();
+            for (int radarScanVertical = 0; radarScanVertical < radarScanStepCountVertical; radarScanVertical++)
+            {
+                // calculate radar ray
+                double radarAngleVerticalOffset = radarScanStepVertical * radarScanVertical - radarAngleVertical / 2.0;
+                double radarAngleHorizontalOffset = radarScanStepHorizontal * radarScanHorizontal - radarAngleHorizontal / 2.0;
+                Vector radarRayDirection = forwardDirection.clone()
+                                                           .rotateAroundAxis(rightDirection, radarAngleVerticalOffset)
+                                                           .rotateAroundY(radarAngleHorizontalOffset);
+                // update radar flags
+                if (radarScanHorizontal == lastRadarScanStep)
+                {
+                    double theta = Math.max(Math.abs(radarAngleVerticalOffset), Math.abs(radarAngleHorizontalOffset));
+                    Vector radarRay = radarRayDirection.clone()
+                                                       .multiply(1.0f + (currentCameraVelocity.length() * radarRangeFrontMultiplier * Math.pow(Math.max(Math.cos(theta) - 0.5, 0.0), 3)) + (2.0 * Math.sin(theta)));
+                    boolean rayResult = (MathUtils.RayTrace(currentCameraLocation, radarRay) != null);
+                    radarFlags[radarScanVertical][radarScanHorizontal] = rayResult;
+                    if (rayResult && showRadarRayRedParticle)
+                    {
+                        MathUtils.ForLine(currentCameraLocation, currentCameraLocation.clone()
+                                                                                      .add(radarRay), 0.2f, location -> location.getWorld()
+                                                                                                                                .spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.RED, 0.4f)));
+                    }
+                    else if(showRadarRayGreenParticle)
+                    {
+                        MathUtils.ForLine(currentCameraLocation, currentCameraLocation.clone()
+                                                                                      .add(radarRay), 0.2f, location -> location.getWorld()
+                                                                                                                                .spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.GREEN, 0.4f)));
+                    }
+                }
+                // apply direction
+                if (radarFlags[radarScanVertical][radarScanHorizontal])
+                {
+                    CASDirection.subtract(radarRayDirection);
+                    CASFlag = true;
+                }
+            }
         }
-        else if (!needGoUp && needGoDown)
-        {
-            propellerForceDirection.setY(-1.0).normalize();
-        }
+        lastRadarScanStep = (lastRadarScanStep + 1) % radarScanStepCountHorizontal;
 
-        // calculate propeller force
-        float enginePower = MathUtils.squareMap((float) fLength, minPowerDistance, maxPowerDistance, minEnginePower, maxEnginePower);
-        enginePower = MathUtils.Clamp(enginePower, minEnginePower, maxEnginePower);
+        Vector CASVelocity = CASFlag ? CASDirection.clone().normalize().multiply(CASSpeed) : null;
 
-        double vc = currentCameraVelocity.dot(propellerForceDirection);
-        double deltaT = LazyDirector.GetServerTickDeltaTime();
-        double t0, t1;
-        if (vc > 0)
-        {
-            t0 = (helicopterMass * vc * vc) / (2.0 * enginePower);
-            t1 = t0 + deltaT;
-        }
-        else
-        {
-            t1 = (helicopterMass * vc * vc) / (2.0 * enginePower);
-            t0 = t1 - deltaT;
-        }
-        double propellerForce = (enginePower * deltaT) / (Math.sqrt((8.0 * enginePower) / (9.0 * helicopterMass)) * (Math.pow(t1, 1.5) - (t0 > 0 ? 1 : -1) * Math.pow(Math.abs(t0), 1.5)));
+        Vector targetVelocity = CASFlag ? CASVelocity : chaseVelocity;
 
         // calculate resultant force
-        Vector resultantForce = new Vector(0.0, 0.0, 0.0);
-        resultantForce.add(currentCameraVelocity.clone().multiply(-fragFactor));
-        resultantForce.add(propellerForceDirection.clone().multiply(propellerForce));
+        Vector nextCameraVelocity = MathUtils.Lerp(currentCameraVelocity, targetVelocity, 0.05f);
+        if(showPropellerParticle)
+        {
+            MathUtils.ForLine(currentCameraLocation,
+                              currentCameraLocation.clone().add(currentCameraVelocity.clone().subtract(nextCameraVelocity).multiply(2.0)),
+                              0.2f,
+                              location -> location.getWorld().spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.WHITE, 2.0f)));
+        }
 
-        // apply force
-        currentCameraVelocity.add(resultantForce.clone().multiply(1.0f / helicopterMass));
+        // apply force and velocity
+        currentCameraVelocity = nextCameraVelocity;
         currentCameraLocation.add(currentCameraVelocity.clone().multiply(LazyDirector.GetServerTickDeltaTime()));
 
         // set rotation
         MathUtils.LookAt(currentCameraLocation, focusLocation);
 
         // check view goodness
-        if (fLength < maxPowerDistance && (!enableVisibilityCheck || MathUtils.IsVisible(currentCameraLocation, focus.getLocation())))
+        if (chhLength < (chaseDistance + criticalDistance) / 2 && (!enableVisibilityCheck || MathUtils.IsVisible(currentCameraLocation, focus.getLocation())))
         {
             badViewTimer = 0.0f;
         }
-        else if(!currentCameraLocation.getBlock().getType().isAir())
+        else if (!currentCameraLocation.getBlock().getType().isAir())
         {
             badViewTimer = maxBadViewTime;
         }
@@ -209,31 +243,5 @@ public class HelicopterView extends CameraView
     public boolean cannotFindGoodView()
     {
         return cannotFindGoodView;
-    }
-
-    private static boolean terrainCollision(@NotNull Location location, int rangeY)
-    {
-        Location loc = location.clone();
-        if (rangeY > 0)
-        {
-            for (int y = 0; y < rangeY; y++)
-            {
-                if (!loc.add(0.0, 1.0, 0.0).getBlock().getType().isAir())
-                {
-                    return true;
-                }
-            }
-        }
-        else
-        {
-            for (int y = 0; y > rangeY; y--)
-            {
-                if (!loc.add(0.0, -1.0, 0.0).getBlock().getType().isAir())
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

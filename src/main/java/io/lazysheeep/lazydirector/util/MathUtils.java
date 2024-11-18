@@ -7,6 +7,8 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Consumer;
+
 public class MathUtils
 {
     public static int Clamp(int value, int min, int max)
@@ -22,6 +24,11 @@ public class MathUtils
     public static float Lerp(float start, float end, float t)
     {
         return (1.0f - t) * start + t * end;
+    }
+
+    public static @NotNull Vector Lerp(@NotNull Vector start, @NotNull Vector end, float t)
+    {
+        return start.clone().multiply(1.0f - t).add(end.clone().multiply(t));
     }
 
     public static @NotNull Location Lerp(@NotNull Location start, @NotNull Location end, float t)
@@ -99,6 +106,7 @@ public class MathUtils
 
     public static float squareMap(float value, float mapFromMin, float mapFromMax, float minMapTo, float maxMapTo)
     {
+        value = Clamp(value, mapFromMin, mapFromMax);
         return squareInterpolation(minMapTo, maxMapTo, (value - mapFromMin) / (mapFromMax - mapFromMin));
     }
 
@@ -127,6 +135,12 @@ public class MathUtils
 
     private static final double rayTraceMaxDistance = 256.0;
 
+    public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Vector ray)
+    {
+        return start.getWorld()
+                    .rayTraceBlocks(start, ray, ray.length(), FluidCollisionMode.NEVER, true);
+    }
+
     public static @Nullable RayTraceResult RayTrace(@NotNull Location start, @NotNull Location end)
     {
         if(start.getWorld() != end.getWorld())
@@ -148,5 +162,21 @@ public class MathUtils
                                      .rayTraceBlocks(start, end.toVector()
                                                                .subtract(start.toVector()), start.distance(end), FluidCollisionMode.NEVER, true);
         return result == null;
+    }
+
+    public static void ForLine(@NotNull Location start, @NotNull Location end, float step, @NotNull Consumer<Location> consumer)
+    {
+        if(start.getWorld() != end.getWorld())
+        {
+            return;
+        }
+        Vector direction = end.toVector().subtract(start.toVector()).normalize();
+        int stepCount = (int)Math.ceil(start.distance(end) / step);
+        Location location = start.clone();
+        for (int i = 0; i < stepCount; i++)
+        {
+            location.add(direction.clone().multiply(step));
+            consumer.accept(location);
+        }
     }
 }
