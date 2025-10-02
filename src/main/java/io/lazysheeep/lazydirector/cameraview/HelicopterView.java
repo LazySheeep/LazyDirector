@@ -1,17 +1,17 @@
 package io.lazysheeep.lazydirector.cameraview;
 
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import io.lazysheeep.lazydirector.util.RandomUtils;
-import org.bukkit.Color;
-import org.bukkit.Location;
-import org.bukkit.Particle;
+import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurationNode;
 
-import java.util.logging.Level;
+import java.util.List;
 
 public class HelicopterView extends CameraView
 {
@@ -32,6 +32,7 @@ public class HelicopterView extends CameraView
     private final boolean showRadarRayGreenParticle;
     private final boolean showRadarRayRedParticle;
     private final boolean showPropellerParticle;
+    private final boolean playPropellerSound;
     private final boolean enableVisibilityCheck;
     private final float maxBadViewTime;
     private final int retriesWhenBadView;
@@ -57,6 +58,7 @@ public class HelicopterView extends CameraView
         showRadarRayGreenParticle = configNode.node("showRadarRayGreenParticle").getBoolean(false);
         showRadarRayRedParticle = configNode.node("showRadarRayRedParticle").getBoolean(false);
         showPropellerParticle = configNode.node("showPropellerParticle").getBoolean(false);
+        playPropellerSound = configNode.node("playPropellerSound").getBoolean(false);
         radarRangeFrontMultiplier = configNode.node("radarRangeFrontMultiplier").getFloat(0.0f);
         enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
@@ -110,10 +112,11 @@ public class HelicopterView extends CameraView
     }
 
     @Override
-    public void updateCameraLocation(@NotNull Hotspot focus)
+    public void updateCameraLocation(@NotNull Hotspot focus, @NotNull Camera camera)
     {
         Location focusLocation = focus.getLocation();
         Location hoverLocation = focusLocation.clone().add(0.0, hoverHeight, 0.0);
+        Location cameraEntityLocation = camera.getCameraEntity().getLocation();
 
         if (currentCameraLocation == null || badViewTimer >= maxBadViewTime || MathUtils.Distance(currentCameraLocation, focusLocation) > criticalDistance)
         {
@@ -122,13 +125,13 @@ public class HelicopterView extends CameraView
 
         // calculate main propeller force direction
         Vector chh = hoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
-        float chhLength = (float)chh.length();
+        float chhLength = (float) chh.length();
         Vector chhNorm = chh.clone().normalize();
         Vector vhNorm = currentCameraVelocity.clone().setY(0.0).normalize();
         Vector upDirection = new Vector(0.0, 1.0, 0.0);
         double deltaHeight = hoverLocation.getY() - currentCameraLocation.getY();
         Vector chaseVelocityDirection;
-        if(chhLength > hoverRadius)
+        if (chhLength > hoverRadius)
         {
             double chhvTheta = Math.asin(hoverRadius / chhLength);
             double chhvCross = chhNorm.getX() * vhNorm.getZ() - chhNorm.getZ() * vhNorm.getX();
@@ -177,14 +180,14 @@ public class HelicopterView extends CameraView
                     if (rayResult && showRadarRayRedParticle)
                     {
                         MathUtils.ForLine(currentCameraLocation, currentCameraLocation.clone()
-                                                                                      .add(radarRay), 0.2f, location -> location.getWorld()
-                                                                                                                                .spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.RED, 0.4f)));
+                                                                                      .add(radarRay), 0.2f, (location, progress) -> location.getWorld()
+                                                                                                                                            .spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.RED, 0.4f)));
                     }
-                    else if(showRadarRayGreenParticle)
+                    else if (showRadarRayGreenParticle)
                     {
                         MathUtils.ForLine(currentCameraLocation, currentCameraLocation.clone()
-                                                                                      .add(radarRay), 0.2f, location -> location.getWorld()
-                                                                                                                                .spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.GREEN, 0.4f)));
+                                                                                      .add(radarRay), 0.2f, (location, progress) -> location.getWorld()
+                                                                                                                                            .spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.GREEN, 0.4f)));
                     }
                 }
                 // apply direction
@@ -203,12 +206,38 @@ public class HelicopterView extends CameraView
 
         // calculate resultant force
         Vector nextCameraVelocity = MathUtils.Lerp(currentCameraVelocity, targetVelocity, 0.05f);
-        if(showPropellerParticle)
+        if (showPropellerParticle)
         {
-            MathUtils.ForLine(currentCameraLocation,
-                              currentCameraLocation.clone().add(currentCameraVelocity.clone().subtract(nextCameraVelocity).multiply(2.0)),
-                              0.2f,
-                              location -> location.getWorld().spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.WHITE, 2.0f)));
+            Location particleStartLocation = cameraEntityLocation.clone()
+                                                                 .add(currentCameraVelocity.clone().multiply(-0.15));
+            Vector force = currentCameraVelocity.clone()
+                                                .subtract(nextCameraVelocity)
+                                                .multiply(2.5)
+                                                .add(new Vector(0.0, -1.0, 0.0));
+            float forceLevel = MathUtils.Clamp((float) force.length() / (maxSpeed / 10.0f), 0.0f, 1.0f);
+            Location particleEndLocation = particleStartLocation.clone().add(force);
+            List<Player> cameraOutputPlayers = camera.getOutputs();
+            List<Player> visiblePlayers = particleStartLocation.getWorld()
+                                                               .getPlayers()
+                                                               .stream()
+                                                               .filter(player -> !cameraOutputPlayers.contains(player))
+                                                               .toList();
+            float minParticleSize = MathUtils.Lerp(0.5f, 1.0f, forceLevel);
+            float maxParticleSize = MathUtils.Lerp(1.5f, 3.0f, forceLevel);
+            MathUtils.ForLine(particleStartLocation, particleEndLocation, 0.2f, (location, progress) ->
+            {
+                float particleSize = MathUtils.Lerp(maxParticleSize, minParticleSize, progress);
+                float volume = MathUtils.Lerp(1.5f, 2.0f, forceLevel);
+                float pitch = MathUtils.Lerp(0.5f, 2.0f, forceLevel);
+                for (Player player : visiblePlayers)
+                {
+                    player.spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.WHITE, particleSize));
+                    if(playPropellerSound)
+                    {
+                        player.playSound(cameraEntityLocation, Sound.BLOCK_GRASS_STEP, SoundCategory.RECORDS, volume, pitch);
+                    }
+                }
+            });
         }
 
         // apply force and velocity

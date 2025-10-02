@@ -1,5 +1,6 @@
 package io.lazysheeep.lazydirector.cameraview;
 
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import org.bukkit.Location;
@@ -84,7 +85,7 @@ public class OverTheShoulderView extends CameraView
     }
 
     @Override
-    public void updateCameraLocation(@NotNull Hotspot focus)
+    public void updateCameraLocation(@NotNull Hotspot focus, @NotNull Camera camera)
     {
         currentCameraLocation = calculateCameraLocation(focus);
     }

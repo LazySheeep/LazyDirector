@@ -7,6 +7,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MathUtils
@@ -164,7 +165,7 @@ public class MathUtils
         return result == null;
     }
 
-    public static void ForLine(@NotNull Location start, @NotNull Location end, float step, @NotNull Consumer<Location> consumer)
+    public static void ForLine(@NotNull Location start, @NotNull Location end, float step, @NotNull BiConsumer<Location, Float> consumer)
     {
         if(start.getWorld() != end.getWorld())
         {
@@ -176,7 +177,7 @@ public class MathUtils
         for (int i = 0; i < stepCount; i++)
         {
             location.add(direction.clone().multiply(step));
-            consumer.accept(location);
+            consumer.accept(location, (float)i / stepCount);
         }
     }
 }

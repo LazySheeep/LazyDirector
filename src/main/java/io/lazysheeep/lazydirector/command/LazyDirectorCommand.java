@@ -175,10 +175,10 @@ public class LazyDirectorCommand extends BaseCommand
             sender.sendMessage(stringBuilder.toString());
         }
 
-        @Subcommand("candidate")
-        @Description("List current candidate hotspots of a specific camera")
+        @Subcommand("info")
+        @Description("Check the info of a specific camera")
         @CommandCompletion("@cameraNames")
-        public void onCandidate(CommandSender sender, String cameraName)
+        public void onInfo(CommandSender sender, String cameraName)
         {
             if(!LazyDirector.GetPlugin().isActive())
             {
@@ -191,9 +191,68 @@ public class LazyDirectorCommand extends BaseCommand
             {
                 StringBuilder stringBuilder = new StringBuilder();
                 List<Hotspot> hotspots = camera.getCandidateFocuses();
-                stringBuilder.append("Total ").append(hotspots.size()).append(" candidate hotspots for camera ").append(camera.getName()).append(":");
+                stringBuilder.append("Camera ").append(camera).append("\n").append(hotspots.size()).append(" candidate hotspots:");
                 hotspots.forEach(hotspot -> stringBuilder.append("\n").append(hotspot));
                 sender.sendMessage(stringBuilder.toString());
+            }
+            else
+            {
+                sender.sendMessage(Component.text("Camera " + cameraName + " not found.", NamedTextColor.RED));
+            }
+        }
+
+        @Subcommand("lock")
+        @Description("Lock a camera to a specific actor")
+        @CommandCompletion("@cameraNames @actorNames")
+        public void onLock(CommandSender sender, String cameraName, String actorName)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
+                return;
+            }
+
+            Camera camera = LazyDirector.GetPlugin().getCameraManager().getCamera(cameraName);
+            if(camera != null)
+            {
+                Player player = Bukkit.getPlayer(actorName);
+                if(player == null)
+                {
+                    sender.sendMessage(Component.text("Actor " + actorName + " not found.", NamedTextColor.RED));
+                    return;
+                }
+                Actor actor = LazyDirector.GetPlugin().getActorManager().getActor(player);
+                if(actor == null)
+                {
+                    sender.sendMessage(Component.text("Actor " + actorName + " not found.", NamedTextColor.RED));
+                    return;
+                }
+                Hotspot hotspot = actor.getActorHotspot();
+                camera.lockOnFocus(hotspot);
+                sender.sendMessage(Component.text("Locked camera " + camera.getName() + " to actor " + actor.getPlayer().getName(), NamedTextColor.AQUA));
+            }
+            else
+            {
+                sender.sendMessage(Component.text("Camera " + cameraName + " not found.", NamedTextColor.RED));
+            }
+        }
+
+        @Subcommand("unlock")
+        @Description("Unlock a camera from its locked actor")
+        @CommandCompletion("@cameraNames")
+        public void onUnlock(CommandSender sender, String cameraName)
+        {
+            if(!LazyDirector.GetPlugin().isActive())
+            {
+                sender.sendMessage(Component.text(LocalizationManager.GetLocalizedString("command_not_activated", Locale.getDefault()), NamedTextColor.YELLOW));
+                return;
+            }
+
+            Camera camera = LazyDirector.GetPlugin().getCameraManager().getCamera(cameraName);
+            if(camera != null)
+            {
+                camera.lockOnFocus(null);
+                sender.sendMessage(Component.text("Unlocked camera " + camera.getName(), NamedTextColor.AQUA));
             }
             else
             {
@@ -247,7 +306,7 @@ public class LazyDirectorCommand extends BaseCommand
             switch (LazyDirector.GetPlugin().heat(player, heatType))
             {
                 case 0:
-                    sender.sendMessage("Heated " + player.getName());
+                    sender.sendMessage("Heated " + player.getName() + "(" + heatType + " is " + LazyDirector.GetPlugin().getHeat(player, heatType));
                     break;
                 case 1:
                     sender.sendMessage("Heat type " + heatType + " not found.");

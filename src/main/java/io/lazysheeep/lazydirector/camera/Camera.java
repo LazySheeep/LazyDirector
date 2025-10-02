@@ -211,6 +211,11 @@ public class Camera
         }
     }
 
+    public Entity getCameraEntity()
+    {
+        return cameraEntity;
+    }
+
     /**
      * <p>
      * Attach a player to the camera.
@@ -242,7 +247,23 @@ public class Camera
         }
     }
 
+    public void lockOnFocus(@Nullable Hotspot target)
+    {
+        if (target != null && target.isValid())
+        {
+            currentFocus = target;
+            focusLocked = true;
+            focusTimer = 0.0f;
+            focusScore = initFocusScore;
+        }
+        else
+        {
+            focusLocked = false;
+        }
+    }
+
     private Hotspot currentFocus = null;
+    private boolean focusLocked = false;
     private float focusTimer = 0.0f;
     private float focusScore = 0.0f;
 
@@ -267,6 +288,7 @@ public class Camera
         // check focus validity
         if (currentFocus == null || !currentFocus.isValid())
         {
+            focusLocked = false;
             switchFocus();
         }
         // update focus score
@@ -287,7 +309,7 @@ public class Camera
             focusScore -= focusSatPenalty * LazyDirector.GetServerTickDeltaTime();
         }
         // switch focus
-        if (focusScore <= 0.0f && Math.min(focusTimer, cameraViewTimer) > minSwitchTime)
+        if (!focusLocked && focusScore <= 0.0f && Math.min(focusTimer, cameraViewTimer) > minSwitchTime)
         {
             switchFocus();
         }
@@ -335,7 +357,7 @@ public class Camera
                 }
             }
             // update camera view
-            currentCameraViewWrap.cameraView.updateCameraLocation(currentFocus);
+            currentCameraViewWrap.cameraView.updateCameraLocation(currentFocus, this);
             // update camera entity location
             cameraEntity.teleport(MathUtils.Lerp(cameraEntity.getLocation(), currentCameraViewWrap.cameraView.getCurrentCameraLocation(), 0.25f));
 
@@ -458,6 +480,15 @@ public class Camera
             coldestCandidateIndex++;
         }
         return sortedHotspots.subList(coldestCandidateIndex + 1, sortedHotspots.size());
+    }
+
+    public @Nullable Location getCameraEntityLocation()
+    {
+        if (cameraEntity != null && cameraEntity.isValid())
+        {
+            return cameraEntity.getLocation();
+        }
+        else return null;
     }
 
     /**

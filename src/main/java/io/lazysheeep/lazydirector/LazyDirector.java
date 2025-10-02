@@ -211,6 +211,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath(), ".conf", false));
         commandManager.getCommandCompletions().registerCompletion("cameraNames", c -> getCameraManager().getAllCamera().stream().map(Camera::getName).collect(Collectors.toList()));
         commandManager.getCommandCompletions().registerCompletion("heatTypes", c -> HeatType.values().stream().map(HeatType::getName).collect(Collectors.toList()));
+        commandManager.getCommandCompletions().registerCompletion("actorNames", c -> getActorManager().getAllActors().stream().map(actor -> actor.getPlayer().getName()).collect(Collectors.toList()));
         commandManager.getCommandContexts().registerContext(Player[].class, new PlayerSelectorResolver());
         commandManager.registerCommand(new LazyDirectorCommand());
         // if config folder does not exist, create it and copy the default config
@@ -226,7 +227,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         }
         else
         {
-            Log(Level.WARNING, "\"default.conf\" not found, you will have to activate LazyDirector manually.");
+            Log(Level.WARNING, "\"default.conf\" not found, you need to activate LazyDirector manually.");
         }
     }
 
@@ -355,5 +356,25 @@ public final class LazyDirector extends JavaPlugin implements Listener
     public int heat(Player player, String heatType)
     {
         return heat(player, heatType, 1.0f);
+    }
+
+    public float getHeat(Player player, String heatType)
+    {
+        if(isActive())
+        {
+            Actor actor = getActorManager().getActor(player);
+            if(actor != null)
+            {
+                return actor.getActorHotspot().getHeat(heatType);
+            }
+            else
+            {
+                return -1.0f;
+            }
+        }
+        else
+        {
+            return -1.0f;
+        }
     }
 }

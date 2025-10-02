@@ -1,6 +1,7 @@
 package io.lazysheeep.lazydirector.cameraview;
 
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +47,7 @@ public abstract class CameraView
      * @param focus The focus
      * @return The updated camera location
      */
-    public abstract void updateCameraLocation(@NotNull Hotspot focus);
+    public abstract void updateCameraLocation(@NotNull Hotspot focus, @NotNull Camera camera);
 
     public abstract boolean isViewGood();
 

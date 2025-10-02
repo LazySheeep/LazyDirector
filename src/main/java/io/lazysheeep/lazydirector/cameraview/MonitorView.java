@@ -1,6 +1,7 @@
 package io.lazysheeep.lazydirector.cameraview;
 
 import io.lazysheeep.lazydirector.LazyDirector;
+import io.lazysheeep.lazydirector.camera.Camera;
 import io.lazysheeep.lazydirector.hotspot.Hotspot;
 import io.lazysheeep.lazydirector.util.MathUtils;
 import io.lazysheeep.lazydirector.util.RandomUtils;
@@ -71,7 +72,7 @@ public class MonitorView extends CameraView
     }
 
     @Override
-    public void updateCameraLocation(@NotNull Hotspot focus)
+    public void updateCameraLocation(@NotNull Hotspot focus, @NotNull Camera camera)
     {
         if (currentCameraLocation == null || badViewTimer >= maxBadViewTime || MathUtils.Distance(currentCameraLocation, focus.getLocation()) > criticalDistance)
         {

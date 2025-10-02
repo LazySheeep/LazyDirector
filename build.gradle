@@ -23,7 +23,7 @@ compileJava {
 }
 
 dependencies {
-    compileOnly "io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT"
+    compileOnly "io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT"
     implementation "org.spongepowered:configurate-hocon:4.1.2"
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
 }
@@ -54,12 +54,12 @@ processResources {
 
 task copyJar(type: Copy) {
     from shadowJar.archiveFile
-    into file("$rootDir/test/paper server 1.21/plugins")
+    into file("$rootDir/test/paper server 1.21.7/plugins")
 }
 
 task copyConfig(type: Copy) {
     from file("$rootDir/src/main/resources/example.conf")
-    into file("$rootDir/test/paper server 1.21/plugins/LazyDirector")
+    into file("$rootDir/test/paper server 1.21.7/plugins/LazyDirector")
 }
 
 jar.finalizedBy(copyJar, copyConfig)
