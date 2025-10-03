@@ -37,6 +37,22 @@ public class HelicopterView extends CameraView
     private final float maxBadViewTime;
     private final int retriesWhenBadView;
 
+    private final float predScale;
+    private final float predMinTimeSec;
+    private final float predMaxTimeSec;
+    private final float predTimeGrowRate;     // seconds of lead gained per second when similar
+    private final float predTimeShrinkRate;   // seconds of lead lost per second when dissimilar
+    private final float predDirSimilarDeg;    // direction similarity threshold in degrees [0..180]
+    private final float predSpeedSimilarRel;  // relative speed diff threshold (|v-p|/max(v,p)) [0..1]
+    private final float predGrowAlignPower;   // growth multiplier power vs alignment
+    private final float predShrinkMisalignPower; // shrink multiplier power vs misalignment
+    private final float predVelAdjustBase;    // base factor for velocity change speed
+    private final float predVelAdjustScale;   // extra factor scaling with difference
+    private final float predDiffWeightDir;    // weight of direction difference in [0..1]
+    private final float predDiffWeightSpeed;  // weight of speed difference in [0..1]
+    private final float predLookAtWeight;
+    private final boolean showPredictedPath;  // whether to draw the predicted path with particles
+
     private static final float heightTolerance = 2.0f;
 
     public HelicopterView(@NotNull ConfigurationNode configNode)
@@ -63,6 +79,27 @@ public class HelicopterView extends CameraView
         enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
         retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
+
+        // Prediction config defaults (flat keys; override in config if needed)
+        predScale = configNode.node("predictionScale").getFloat(1.0f);
+        predMinTimeSec = configNode.node("predictionMinTimeSec").getFloat(0.20f);
+        predMaxTimeSec = configNode.node("predictionMaxTimeSec").getFloat(2.50f);
+        predTimeGrowRate = configNode.node("predictionTimeGrowRate").getFloat(1.00f);
+        predTimeShrinkRate = configNode.node("predictionTimeShrinkRate").getFloat(1.20f);
+        predDirSimilarDeg = configNode.node("predictionDirSimilarDeg").getFloat(30.0f);
+        predSpeedSimilarRel = configNode.node("predictionSpeedSimilarRel").getFloat(0.25f);
+        predGrowAlignPower = configNode.node("predictionGrowAlignPower").getFloat(1.0f);
+        predShrinkMisalignPower = configNode.node("predictionShrinkMisalignPower").getFloat(1.0f);
+        predVelAdjustBase = configNode.node("predictionVelAdjustBase").getFloat(1.0f);
+        predVelAdjustScale = configNode.node("predictionVelAdjustScale").getFloat(2.0f);
+        float wDir = configNode.node("predictionDiffWeightDir").getFloat(0.65f);
+        float wSpd = configNode.node("predictionDiffWeightSpeed").getFloat(0.35f);
+        // normalize weights to sum to 1 to be safe
+        float sum = Math.max(1e-6f, wDir + wSpd);
+        predDiffWeightDir = wDir / sum;
+        predDiffWeightSpeed = wSpd / sum;
+        predLookAtWeight = configNode.node("predictionLookAtWeight").getFloat(0.0f);
+        showPredictedPath = configNode.node("showPredictedPath").getBoolean(false);
     }
 
     private Location currentCameraLocation = null;
@@ -72,6 +109,11 @@ public class HelicopterView extends CameraView
 
     private int lastRadarScanStep = 0;
     private final boolean[][] radarFlags;
+
+    // Prediction state
+    private Location lastFocusLocation = null;
+    private Vector predictedVelocity = new Vector(0, 0, 0); // horizontal velocity we expect
+    private float predictedTimeSec = 0.0f;
 
     @Override
     public @NotNull Location getCurrentCameraLocation()
@@ -109,27 +151,119 @@ public class HelicopterView extends CameraView
             currentCameraLocation = newCameraLocation;
             currentCameraVelocity = new Vector(RandomUtils.NextDouble(0.0, 0.5), 0.0, RandomUtils.NextDouble(0.0, 0.5));
         }
+
+        // reset prediction state
+        lastFocusLocation = focus.getLocation().clone();
+        predictedVelocity = new Vector(0, 0, 0);
+        predictedTimeSec = predMinTimeSec;
     }
 
     @Override
     public void updateCameraLocation(@NotNull Hotspot focus, @NotNull Camera camera)
     {
         Location focusLocation = focus.getLocation();
-        Location hoverLocation = focusLocation.clone().add(0.0, hoverHeight, 0.0);
-        Location cameraEntityLocation = camera.getCameraEntity().getLocation();
+        float dt = Math.max(0.0f, LazyDirector.GetServerTickDeltaTime());
+
+        // --- Compute target's current horizontal velocity ---
+        Vector currentVel = new Vector(0, 0, 0);
+        if (lastFocusLocation != null && dt > 1e-4f)
+        {
+            currentVel = focusLocation.toVector().subtract(lastFocusLocation.toVector()).multiply(1.0 / dt);
+        }
+        currentVel.setY(0.0); // predict only in horizontal plane; we keep fixed hover height
+
+        // initialize predicted velocity the first time with current
+        if (predictedVelocity.lengthSquared() < 1e-8 && currentVel.lengthSquared() > 0)
+        {
+            predictedVelocity = currentVel.clone();
+        }
+
+        // --- Similarity checks ---
+        double curSpeed = currentVel.length();
+        double predSpeed = predictedVelocity.length();
+        double dirCos;
+        if (curSpeed > 1e-6 && predSpeed > 1e-6)
+        {
+            dirCos = currentVel.clone().normalize().dot(predictedVelocity.clone().normalize());
+        }
+        else
+        {
+            dirCos = -1.0; // treat as dissimilar when one is near zero
+        }
+        dirCos = Math.max(-1.0, Math.min(1.0, dirCos));
+
+        double relSpeedDiff = 0.0;
+        if (Math.max(curSpeed, predSpeed) > 1e-6)
+        {
+            relSpeedDiff = Math.abs(curSpeed - predSpeed) / Math.max(curSpeed, predSpeed);
+        }
+        // direction similarity based on angle threshold in degrees
+        double angleDeg = Math.toDegrees(Math.acos(dirCos));
+        boolean directionSimilar = angleDeg <= predDirSimilarDeg;
+        boolean speedSimilar = relSpeedDiff <= predSpeedSimilarRel;
+        boolean similar = directionSimilar && speedSimilar;
+
+        // --- Adjust predicted lead time ---
+        // alignment in [0,1]: 1 when perfectly aligned, 0 when opposite or undefined
+        float align01 = (float) Math.max(0.0, dirCos);
+        if (similar)
+        {
+            float growthFactor = (float) Math.pow(align01, predGrowAlignPower);
+            predictedTimeSec += dt * predTimeGrowRate * growthFactor;
+        }
+        else
+        {
+            float misalign01 = 1.0f - align01;
+            float shrinkFactor = (float) Math.pow(misalign01, predShrinkMisalignPower);
+            predictedTimeSec -= dt * predTimeShrinkRate * shrinkFactor;
+        }
+        predictedTimeSec = MathUtils.Clamp(predictedTimeSec, predMinTimeSec, predMaxTimeSec);
+
+        // --- Adjust predicted velocity using weighted average with extra factor ---
+        // difference score in [0,1]
+        float diffDir = 1.0f - align01; // 0 when aligned, 1 when opposite
+        float diffSpeed = MathUtils.Clamp((float) relSpeedDiff, 0.0f, 1.0f);
+        float diffScore = MathUtils.Clamp(predDiffWeightDir * diffDir + predDiffWeightSpeed * diffSpeed, 0.0f, 1.0f);
+        // Scale the contribution of current velocity by a factor that grows with difference
+        double effectiveDt = dt * (predVelAdjustBase + predVelAdjustScale * diffScore);
+        double denom = predictedTimeSec + effectiveDt;
+        if (denom > 1e-6)
+        {
+            Vector num = predictedVelocity.clone().multiply(predictedTimeSec).add(currentVel.clone().multiply(effectiveDt));
+            predictedVelocity = num.multiply(1.0 / denom);
+        }
+        // keep horizontal
+        predictedVelocity.setY(0.0);
+
+        // --- Predicted hover target ---
+        Vector predictedOffset = predictedVelocity.clone().multiply(predictedTimeSec * predScale);
+        Location predictedLocation = focusLocation.clone().add(predictedOffset);
+        Location predictedHoverLocation = predictedLocation.clone().add(0.0, hoverHeight, 0.0);
+
+        // Visualize predicted path (optional)
+        if (showPredictedPath)
+        {
+            MathUtils.ForLine(focusLocation, predictedLocation, 0.5f, (location, progress) ->
+            {
+                for (Player player : camera.getOutputs())
+                {
+                    player.spawnParticle(Particle.DUST, location, 1, new Particle.DustOptions(Color.BLUE, 1.0f));
+                }
+            });
+        }
 
         if (currentCameraLocation == null || badViewTimer >= maxBadViewTime || MathUtils.Distance(currentCameraLocation, focusLocation) > criticalDistance)
         {
             newCameraLocation(focus);
         }
 
-        // calculate main propeller force direction
-        Vector chh = hoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
+        // calculate main propeller force direction (to predicted hover location)
+        Vector chh = predictedHoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
         float chhLength = (float) chh.length();
         Vector chhNorm = chh.clone().normalize();
         Vector vhNorm = currentCameraVelocity.clone().setY(0.0).normalize();
         Vector upDirection = new Vector(0.0, 1.0, 0.0);
-        double deltaHeight = hoverLocation.getY() - currentCameraLocation.getY();
+        double deltaHeight = predictedHoverLocation.getY() - currentCameraLocation.getY();
         Vector chaseVelocityDirection;
         if (chhLength > hoverRadius)
         {
@@ -208,6 +342,7 @@ public class HelicopterView extends CameraView
         Vector nextCameraVelocity = MathUtils.Lerp(currentCameraVelocity, targetVelocity, 0.05f);
         if (showPropellerParticle)
         {
+            Location cameraEntityLocation = camera.getCameraEntity().getLocation();
             Location particleStartLocation = cameraEntityLocation.clone()
                                                                  .add(currentCameraVelocity.clone().multiply(-0.15));
             Vector force = currentCameraVelocity.clone()
@@ -245,7 +380,15 @@ public class HelicopterView extends CameraView
         currentCameraLocation.add(currentCameraVelocity.clone().multiply(LazyDirector.GetServerTickDeltaTime()));
 
         // set rotation
-        MathUtils.LookAt(currentCameraLocation, focusLocation);
+        Location lookatLocation = focusLocation.clone().add(predictedOffset.clone().multiply(predLookAtWeight));
+        MathUtils.LookAt(currentCameraLocation, lookatLocation);
+        if(showPredictedPath)
+        {
+            for (Player player : camera.getOutputs())
+            {
+                player.spawnParticle(Particle.DUST, lookatLocation, 1, new Particle.DustOptions(Color.AQUA, 2.0f));
+            }
+        }
 
         // check view goodness
         if (chhLength < (chaseDistance + criticalDistance) / 2 && (!enableVisibilityCheck || MathUtils.IsVisible(currentCameraLocation, focus.getLocation())))
@@ -260,6 +403,9 @@ public class HelicopterView extends CameraView
         {
             badViewTimer += LazyDirector.GetServerTickDeltaTime();
         }
+
+        // update last focus position for next tick
+        lastFocusLocation = focusLocation.clone();
     }
 
     @Override
