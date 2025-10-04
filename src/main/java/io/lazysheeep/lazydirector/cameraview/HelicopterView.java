@@ -15,13 +15,16 @@ import java.util.List;
 
 public class HelicopterView extends CameraView
 {
-    private final float hoverHeight;
+    private final float hoverHeightMin;
+    private final float hoverHeightMax;
     private final float hoverRadius;
     private final float chaseDistance;
     private final float criticalDistance;
     private final float hoverSpeed;
-    private final float CASSpeed;
     private final float maxSpeed;
+    private final float CASWeight;
+    private final float CASSpeedMin;
+    private final float CASSpeedMax;
     private final double radarAngleVertical;
     private final double radarAngleHorizontal;
     private final double radarScanStepVertical;
@@ -29,6 +32,7 @@ public class HelicopterView extends CameraView
     private final int radarScanStepCountVertical;
     private final int radarScanStepCountHorizontal;
     private final float radarRangeFrontMultiplier;
+    private final float radarRangeSide;
     private final boolean showRadarRayGreenParticle;
     private final boolean showRadarRayRedParticle;
     private final boolean showPropellerParticle;
@@ -57,13 +61,16 @@ public class HelicopterView extends CameraView
 
     public HelicopterView(@NotNull ConfigurationNode configNode)
     {
-        hoverHeight = configNode.node("hoverHeight").getFloat(0.0f);
+        hoverHeightMin = configNode.node("hoverHeightMin").getFloat(0.0f);
+        hoverHeightMax = configNode.node("hoverHeightMax").getFloat(0.0f);
         hoverRadius = configNode.node("hoverRadius").getFloat(0.0f);
         chaseDistance = configNode.node("chaseDistance").getFloat(0.0f);
         criticalDistance = configNode.node("criticalDistance").getFloat(Float.MAX_VALUE);
         hoverSpeed = configNode.node("hoverSpeed").getFloat(0.0f);
-        CASSpeed = configNode.node("CASSpeed").getFloat(0.0f);
+        CASSpeedMin = configNode.node("CASSpeedMin").getFloat(0.0f);
+        CASSpeedMax = configNode.node("CASSpeedMax").getFloat(0.0f);
         maxSpeed = configNode.node("maxSpeed").getFloat(0.0f);
+        CASWeight = configNode.node("CASWeight").getFloat(1.0f);
         radarAngleVertical = Math.toRadians(configNode.node("radarAngleVertical").getDouble(0.0));
         radarAngleHorizontal = Math.toRadians(configNode.node("radarAngleHorizontal").getDouble(0.0));
         radarScanStepVertical = Math.toRadians(configNode.node("radarScanStepVertical").getDouble(0.0));
@@ -76,6 +83,7 @@ public class HelicopterView extends CameraView
         showPropellerParticle = configNode.node("showPropellerParticle").getBoolean(false);
         playPropellerSound = configNode.node("playPropellerSound").getBoolean(false);
         radarRangeFrontMultiplier = configNode.node("radarRangeFrontMultiplier").getFloat(0.0f);
+        radarRangeSide = configNode.node("radarRangeSide").getFloat(0.0f);
         enableVisibilityCheck = configNode.node("enableVisibilityCheck").getBoolean(false);
         maxBadViewTime = configNode.node("maxBadViewTime").getFloat(Float.MAX_VALUE);
         retriesWhenBadView = configNode.node("retriesWhenBadView").getInt(1);
@@ -135,7 +143,7 @@ public class HelicopterView extends CameraView
         {
             newCameraLocation = focus.getLocation()
                                      .clone()
-                                     .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeight, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
+                                     .add(RandomUtils.NextDouble(-hoverRadius, hoverRadius), hoverHeightMin, RandomUtils.NextDouble(-hoverRadius, hoverRadius));
             if (!enableVisibilityCheck || MathUtils.IsVisible(newCameraLocation, focus.getLocation()))
             {
                 currentCameraLocation = newCameraLocation;
@@ -162,29 +170,29 @@ public class HelicopterView extends CameraView
     public void updateCameraLocation(@NotNull Hotspot focus, @NotNull Camera camera)
     {
         Location focusLocation = focus.getLocation();
-        float dt = Math.max(0.0f, LazyDirector.GetServerTickDeltaTime());
+        float deltaTime = Math.max(0.0f, LazyDirector.GetServerTickDeltaTime());
 
         // --- Compute target's current horizontal velocity ---
         Vector currentVel = new Vector(0, 0, 0);
-        if (lastFocusLocation != null && dt > 1e-4f)
+        if (lastFocusLocation != null && deltaTime > 1e-4f)
         {
-            currentVel = focusLocation.toVector().subtract(lastFocusLocation.toVector()).multiply(1.0 / dt);
+            currentVel = focusLocation.toVector().subtract(lastFocusLocation.toVector()).multiply(1.0 / deltaTime);
         }
-        currentVel.setY(0.0); // predict only in horizontal plane; we keep fixed hover height
+        Vector currentHorVel = currentVel.clone().setY(0.0); // predict only in horizontal plane; we keep fixed hover height
 
         // initialize predicted velocity the first time with current
-        if (predictedVelocity.lengthSquared() < 1e-8 && currentVel.lengthSquared() > 0)
+        if (predictedVelocity.lengthSquared() < 1e-8 && currentHorVel.lengthSquared() > 0)
         {
-            predictedVelocity = currentVel.clone();
+            predictedVelocity = currentHorVel.clone();
         }
 
         // --- Similarity checks ---
-        double curSpeed = currentVel.length();
+        double curSpeed = currentHorVel.length();
         double predSpeed = predictedVelocity.length();
         double dirCos;
         if (curSpeed > 1e-6 && predSpeed > 1e-6)
         {
-            dirCos = currentVel.clone().normalize().dot(predictedVelocity.clone().normalize());
+            dirCos = currentHorVel.clone().normalize().dot(predictedVelocity.clone().normalize());
         }
         else
         {
@@ -209,13 +217,13 @@ public class HelicopterView extends CameraView
         if (similar)
         {
             float growthFactor = (float) Math.pow(align01, predGrowAlignPower);
-            predictedTimeSec += dt * predTimeGrowRate * growthFactor;
+            predictedTimeSec += deltaTime * predTimeGrowRate * growthFactor;
         }
         else
         {
             float misalign01 = 1.0f - align01;
             float shrinkFactor = (float) Math.pow(misalign01, predShrinkMisalignPower);
-            predictedTimeSec -= dt * predTimeShrinkRate * shrinkFactor;
+            predictedTimeSec -= deltaTime * predTimeShrinkRate * shrinkFactor;
         }
         predictedTimeSec = MathUtils.Clamp(predictedTimeSec, predMinTimeSec, predMaxTimeSec);
 
@@ -225,11 +233,11 @@ public class HelicopterView extends CameraView
         float diffSpeed = MathUtils.Clamp((float) relSpeedDiff, 0.0f, 1.0f);
         float diffScore = MathUtils.Clamp(predDiffWeightDir * diffDir + predDiffWeightSpeed * diffSpeed, 0.0f, 1.0f);
         // Scale the contribution of current velocity by a factor that grows with difference
-        double effectiveDt = dt * (predVelAdjustBase + predVelAdjustScale * diffScore);
+        double effectiveDt = deltaTime * (predVelAdjustBase + predVelAdjustScale * diffScore);
         double denom = predictedTimeSec + effectiveDt;
         if (denom > 1e-6)
         {
-            Vector num = predictedVelocity.clone().multiply(predictedTimeSec).add(currentVel.clone().multiply(effectiveDt));
+            Vector num = predictedVelocity.clone().multiply(predictedTimeSec).add(currentHorVel.clone().multiply(effectiveDt));
             predictedVelocity = num.multiply(1.0 / denom);
         }
         // keep horizontal
@@ -238,7 +246,9 @@ public class HelicopterView extends CameraView
         // --- Predicted hover target ---
         Vector predictedOffset = predictedVelocity.clone().multiply(predictedTimeSec * predScale);
         Location predictedLocation = focusLocation.clone().add(predictedOffset);
-        Location predictedHoverLocation = predictedLocation.clone().add(0.0, hoverHeight, 0.0);
+        Vector chh = predictedLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
+        float chhLength = (float) chh.length();
+        Location predictedHoverLocation = predictedLocation.clone().add(0.0, MathUtils.Lerp(hoverHeightMin, hoverHeightMax, (chhLength - hoverRadius) / chaseDistance), 0.0);
 
         // Visualize predicted path (optional)
         if (showPredictedPath)
@@ -258,8 +268,6 @@ public class HelicopterView extends CameraView
         }
 
         // calculate main propeller force direction (to predicted hover location)
-        Vector chh = predictedHoverLocation.toVector().subtract(currentCameraLocation.toVector()).setY(0.0);
-        float chhLength = (float) chh.length();
         Vector chhNorm = chh.clone().normalize();
         Vector vhNorm = currentCameraVelocity.clone().setY(0.0).normalize();
         Vector upDirection = new Vector(0.0, 1.0, 0.0);
@@ -308,7 +316,7 @@ public class HelicopterView extends CameraView
                 {
                     double theta = Math.max(Math.abs(radarAngleVerticalOffset), Math.abs(radarAngleHorizontalOffset));
                     Vector radarRay = radarRayDirection.clone()
-                                                       .multiply(1.0f + (currentCameraVelocity.length() * radarRangeFrontMultiplier * Math.pow(Math.max(Math.cos(theta) - 0.5, 0.0), 3)) + (2.0 * Math.sin(theta)));
+                                                       .multiply(1.0f + (currentCameraVelocity.length() * radarRangeFrontMultiplier * Math.pow(Math.max(Math.cos(theta) - 0.5, 0.0), 3)) + (radarRangeSide * Math.sin(theta)));
                     boolean rayResult = (MathUtils.RayTrace(currentCameraLocation, radarRay) != null);
                     radarFlags[radarScanVertical][radarScanHorizontal] = rayResult;
                     if (rayResult && showRadarRayRedParticle)
@@ -334,9 +342,9 @@ public class HelicopterView extends CameraView
         }
         lastRadarScanStep = (lastRadarScanStep + 1) % radarScanStepCountHorizontal;
 
-        Vector CASVelocity = CASFlag ? CASDirection.clone().normalize().multiply(CASSpeed) : null;
+        Vector CASVelocity = CASFlag ? CASDirection.clone().normalize().multiply(MathUtils.Lerp(CASSpeedMin, CASSpeedMax, (float)currentVel.length() / maxSpeed)) : null;
 
-        Vector targetVelocity = CASFlag ? CASVelocity : chaseVelocity;
+        Vector targetVelocity = CASFlag ? MathUtils.Lerp(chaseVelocity, CASVelocity, CASWeight) : chaseVelocity;
 
         // calculate resultant force
         Vector nextCameraVelocity = MathUtils.Lerp(currentCameraVelocity, targetVelocity, 0.05f);
@@ -377,7 +385,7 @@ public class HelicopterView extends CameraView
 
         // apply force and velocity
         currentCameraVelocity = nextCameraVelocity;
-        currentCameraLocation.add(currentCameraVelocity.clone().multiply(LazyDirector.GetServerTickDeltaTime()));
+        currentCameraLocation.add(currentCameraVelocity.clone().multiply(deltaTime));
 
         // set rotation
         Location lookatLocation = focusLocation.clone().add(predictedOffset.clone().multiply(predLookAtWeight));
@@ -401,7 +409,7 @@ public class HelicopterView extends CameraView
         }
         else
         {
-            badViewTimer += LazyDirector.GetServerTickDeltaTime();
+            badViewTimer += deltaTime;
         }
 
         // update last focus position for next tick

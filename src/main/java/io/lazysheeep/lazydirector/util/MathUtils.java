@@ -24,7 +24,7 @@ public class MathUtils
 
     public static float Lerp(float start, float end, float t)
     {
-        return (1.0f - t) * start + t * end;
+        return Clamp((1.0f - t) * start + t * end, Math.min(start, end), Math.max(start, end));
     }
 
     public static @NotNull Vector Lerp(@NotNull Vector start, @NotNull Vector end, float t)
