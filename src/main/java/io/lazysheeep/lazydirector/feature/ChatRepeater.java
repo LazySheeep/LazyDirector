@@ -11,7 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -38,7 +37,7 @@ public class ChatRepeater implements Listener
     {
         LazyDirector.GetPlugin()
                     .getCameraManager()
-                    .getAllCamera()
+                    .getAllCameras()
                     .forEach(cameraman -> cameraman.getOutputs().forEach(output -> output.sendActionBar(message)));
     }
 

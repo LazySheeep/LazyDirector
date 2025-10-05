@@ -51,7 +51,8 @@ public class Camera
     private final int candidateMaxCount;
     private final float candidateColdestRank;
 
-    private record CameraViewWrap(CameraView cameraView, float weight, float initScore, float goodViewReward, float badViewPenalty, float satTime, float satPenalty)
+    private record CameraViewWrap(CameraView cameraView, float weight, float initScore, float goodViewReward,
+                                  float badViewPenalty, float satTime, float satPenalty)
     {
     }
 
@@ -262,6 +263,11 @@ public class Camera
         }
     }
 
+    public Hotspot getCurrentFocus()
+    {
+        return currentFocus;
+    }
+
     private Hotspot currentFocus = null;
     private boolean focusLocked = false;
     private float focusTimer = 0.0f;
@@ -304,7 +310,7 @@ public class Camera
         {
             focusScore -= badFocusPenaltyMultiplier * (lastCandidateFocus.getHeat() - currentFocus.getHeat()) * LazyDirector.GetServerTickDeltaTime();
         }
-        if(focusTimer > focusSatTime)
+        if (focusTimer > focusSatTime)
         {
             focusScore -= focusSatPenalty * LazyDirector.GetServerTickDeltaTime();
         }
@@ -390,9 +396,9 @@ public class Camera
             // hide players that are too close to the camera entity from output players
             List<Player> otherPlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
             otherPlayers.removeAll(outputs);
-            for(Player otherPlayer : otherPlayers)
+            for (Player otherPlayer : otherPlayers)
             {
-                if(MathUtils.Distance(otherPlayer.getEyeLocation(), cameraEntity.getLocation()) < closeHideDistance)
+                if (MathUtils.Distance(otherPlayer.getEyeLocation(), cameraEntity.getLocation()) < closeHideDistance)
                 {
                     outputs.forEach(output -> output.hidePlayer(LazyDirector.GetPlugin(), otherPlayer));
                     otherPlayer.hideEntity(LazyDirector.GetPlugin(), cameraEntity);
@@ -450,7 +456,7 @@ public class Camera
     public @NotNull List<Hotspot> getCandidateFocuses()
     {
         List<Hotspot> sortedHotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
-        sortedHotspots.removeIf(hotspot -> !candidateHotspotTypes.containsKey(hotspot.getClass()));
+        sortedHotspots.removeIf(hotspot -> (!candidateHotspotTypes.containsKey(hotspot.getClass())) || isHotspotBeingFocusedByOtherCamera(hotspot));
         int hottestCandidateIndex = 0;
         int coldestCandidateIndex = (int) Math.ceil(candidateColdestRank * sortedHotspots.size()) - 1;
         coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, hottestCandidateIndex + candidateMaxCount - 1), sortedHotspots.size() - 1);
@@ -470,7 +476,7 @@ public class Camera
     public @NotNull List<Hotspot> getNonCandidateFocuses()
     {
         List<Hotspot> sortedHotspots = LazyDirector.GetPlugin().getHotspotManager().getAllHotspotsSorted();
-        sortedHotspots.removeIf(hotspot -> !candidateHotspotTypes.containsKey(hotspot.getClass()));
+        sortedHotspots.removeIf(hotspot -> (!candidateHotspotTypes.containsKey(hotspot.getClass())) || isHotspotBeingFocusedByOtherCamera(hotspot));
         int coldestCandidateIndex = (int) Math.ceil(candidateColdestRank * sortedHotspots.size()) - 1;
         coldestCandidateIndex = Math.min(Math.min(coldestCandidateIndex, candidateMaxCount - 1), sortedHotspots.size() - 1);
         while (coldestCandidateIndex + 1 < sortedHotspots.size() && sortedHotspots.get(coldestCandidateIndex)
@@ -488,7 +494,20 @@ public class Camera
         {
             return cameraEntity.getLocation();
         }
-        else return null;
+        else
+            return null;
+    }
+
+    private boolean isHotspotBeingFocusedByOtherCamera(Hotspot hotspot)
+    {
+        for (Camera camera : LazyDirector.GetPlugin().getCameraManager().getAllCameras())
+        {
+            if (camera != this && camera.getCurrentFocus() == hotspot)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -509,7 +528,7 @@ public class Camera
             {
                 candidateCameraViews.remove(currentCameraViewWrap);
             }
-            while(!candidateCameraViews.isEmpty())
+            while (!candidateCameraViews.isEmpty())
             {
                 // pick a camera view
                 float totalWeight = candidateCameraViews.stream()

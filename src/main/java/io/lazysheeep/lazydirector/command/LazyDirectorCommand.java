@@ -169,7 +169,7 @@ public class LazyDirectorCommand extends BaseCommand
             }
 
             StringBuilder stringBuilder = new StringBuilder();
-            List<Camera> cameras = LazyDirector.GetPlugin().getCameraManager().getAllCamera();
+            List<Camera> cameras = LazyDirector.GetPlugin().getCameraManager().getAllCameras();
             stringBuilder.append("Total ").append(cameras.size()).append(" Cameras:");
             cameras.forEach(camera -> stringBuilder.append("\n").append(camera));
             sender.sendMessage(stringBuilder.toString());

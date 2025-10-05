@@ -209,7 +209,7 @@ public final class LazyDirector extends JavaPlugin implements Listener
         Log(Level.INFO, "Registering commands...");
         PaperCommandManager commandManager = new PaperCommandManager(this);
         commandManager.getCommandCompletions().registerCompletion("configNames", c -> FileUtils.getAllFileNames(getDataFolder().getPath(), ".conf", false));
-        commandManager.getCommandCompletions().registerCompletion("cameraNames", c -> getCameraManager().getAllCamera().stream().map(Camera::getName).collect(Collectors.toList()));
+        commandManager.getCommandCompletions().registerCompletion("cameraNames", c -> getCameraManager().getAllCameras().stream().map(Camera::getName).collect(Collectors.toList()));
         commandManager.getCommandCompletions().registerCompletion("heatTypes", c -> HeatType.values().stream().map(HeatType::getName).collect(Collectors.toList()));
         commandManager.getCommandCompletions().registerCompletion("actorNames", c -> getActorManager().getAllActors().stream().map(actor -> actor.getPlayer().getName()).collect(Collectors.toList()));
         commandManager.getCommandContexts().registerContext(Player[].class, new PlayerSelectorResolver());

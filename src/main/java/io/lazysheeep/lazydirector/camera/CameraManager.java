@@ -19,7 +19,7 @@ public class CameraManager
      * Get a copy of all cameras
      * @return A copy of all cameras
      */
-    public @NotNull List<Camera> getAllCamera()
+    public @NotNull List<Camera> getAllCameras()
     {
         return new ArrayList<>(managedCameras);
     }
@@ -95,6 +95,16 @@ public class CameraManager
         {
             camera.detachOutput(outputPlayer);
         }
+    }
+
+    public List<Player> getAllOutputPlayers()
+    {
+        List<Player> outputPlayers = new ArrayList<>();
+        for(Camera camera : managedCameras)
+        {
+            outputPlayers.addAll(camera.getOutputs());
+        }
+        return outputPlayers;
     }
 
     /**
